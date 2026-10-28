@@ -37,10 +37,10 @@ jobs:
       - name: Publish rolling APK release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest-apk
-          name: DimLife Радио — последняя сборка
+          tag_name: v0.1.0
+          name: DimLife Радио v0.1.0
           body: Автоматическая сборка APK из актуальной версии ветки main.
-          prerelease: true
+          prerelease: false
           make_latest: false
           files: DimLife-Radio-debug.apk
         env:
