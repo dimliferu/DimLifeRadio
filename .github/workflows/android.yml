@@ -1,0 +1,47 @@
+name: Android APK
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Build debug APK
+        run: gradle assembleDebug
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk DimLife-Radio-debug.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DimLife-Radio-APK
+          path: DimLife-Radio-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish rolling APK release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-apk
+          name: DimLife Радио — последняя сборка
+          body: Автоматическая сборка APK из актуальной версии ветки main.
+          prerelease: true
+          make_latest: false
+          files: DimLife-Radio-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
