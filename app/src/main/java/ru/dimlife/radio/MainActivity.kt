@@ -3,6 +3,8 @@ package ru.dimlife.radio
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -78,8 +80,24 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val player = ExoPlayer.Builder(this).build()
         setContent {
+            var showSplash by remember { mutableStateOf(true) }
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(2200)
+                showSplash = false
+            }
             MaterialTheme {
-                DimLifeRadioApp(player)
+                if (showSplash) {
+                    Box(Modifier.fillMaxSize().background(Bg), contentAlignment = Alignment.Center) {
+                        AsyncImage(
+                            model = "https://radio.dimlife.ru/dimlife_radio.png",
+                            contentDescription = "DimLife Радио",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                } else {
+                    DimLifeRadioApp(player)
+                }
             }
         }
     }
