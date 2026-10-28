@@ -34,22 +34,22 @@ jobs:
       - name: Build debug APK
         run: gradle assembleDebug
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk DimLife-Radio-v0.1.1.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk DimLife-Radio-v0.1.2.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DimLife-Radio-v0.1.1-APK
-          path: DimLife-Radio-v0.1.1.apk
+          name: DimLife-Radio-v0.1.2-APK
+          path: DimLife-Radio-v0.1.2.apk
           if-no-files-found: error
           retention-days: 14
       - name: Publish rolling APK release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.1
-          name: DimLife Радио v0.1.1
-          body: DimLife Радио v0.1.1. APK подписан стабильным ключом для установки обновлений поверх предыдущей версии. Версия для тестирования, не для Google Play.
+          tag_name: v0.1.2
+          name: DimLife Радио v0.1.2
+          body: DimLife Радио v0.1.2. APK подписан стабильным ключом для установки обновлений поверх предыдущей версии. Версия для тестирования, не для Google Play.
           prerelease: false
           make_latest: false
-          files: DimLife-Radio-v0.1.1.apk
+          files: DimLife-Radio-v0.1.2.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
