@@ -23,25 +23,27 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+      - name: Restore stable debug signing key
+        run: base64 --decode app/dimlife-debug.keystore.b64 > app/dimlife-debug.keystore
       - name: Build debug APK
         run: gradle assembleDebug
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk DimLife-Radio-debug.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk DimLife-Radio-v0.1.1.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DimLife-Radio-APK
-          path: DimLife-Radio-debug.apk
+          name: DimLife-Radio-v0.1.1-APK
+          path: DimLife-Radio-v0.1.1.apk
           if-no-files-found: error
           retention-days: 14
       - name: Publish rolling APK release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0
-          name: DimLife Радио v0.1.0
-          body: Автоматическая сборка APK из актуальной версии ветки main.
+          tag_name: v0.1.1
+          name: DimLife Радио v0.1.1
+          body: DimLife Радио v0.1.1. APK подписан стабильным ключом для установки обновлений поверх предыдущей версии. Версия для тестирования, не для Google Play.
           prerelease: false
           make_latest: false
-          files: DimLife-Radio-debug.apk
+          files: DimLife-Radio-v0.1.1.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
