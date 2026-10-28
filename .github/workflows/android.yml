@@ -23,8 +23,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Restore stable debug signing key
-        run: base64 --decode app/dimlife-debug.keystore.b64 > app/dimlife-debug.keystore
+      - name: Restore persistent debug signing key
+        uses: actions/cache@v4
+        with:
+          path: app/dimlife-debug.keystore
+          key: dimlife-radio-signing-key-v1
+      - name: Generate signing key on first build
+        if: steps.restore-key.outputs.cache-hit != 'true'
+        run: keytool -genkeypair -v -keystore app/dimlife-debug.keystore -storetype PKCS12 -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=DimLife,C=US"
       - name: Build debug APK
         run: gradle assembleDebug
       - name: Rename APK
