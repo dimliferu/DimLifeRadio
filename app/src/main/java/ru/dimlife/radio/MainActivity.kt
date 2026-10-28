@@ -104,7 +104,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
     var query by remember { mutableStateOf("") }
     var customName by remember { mutableStateOf("") }
     var customUrl by remember { mutableStateOf("") }
-    var activeTab by remember { mutableStateOf("Популярные") }
+    var activeTab by remember { mutableStateOf("Россия") }
     var current by remember { mutableStateOf<RadioStation?>(DIMLIFE_STATION) }
     var loading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Подключись к станции и слушай весь мир") }
@@ -133,28 +133,29 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
         message = "Сейчас в эфире"
     }
 
-    fun loadStations(search: String = "") {
+    fun loadStations(search: String = "", russianOnly: Boolean = activeTab == "Россия") {
         loading = true
         scope.launch {
             try {
-                val found = withContext(Dispatchers.IO) { fetchStations(search) }
+                val found = withContext(Dispatchers.IO) { fetchStations(search, russianOnly) }
                 stations.clear()
                 stations.add(DIMLIFE_STATION)
                 stations.addAll(found.filterNot { it.uuid == DIMLIFE_STATION.uuid })
-                message = if (found.isEmpty()) "DimLife Radio готово. В каталоге по запросу ничего не найдено." else "DimLife Radio + станций в каталоге: ${found.size}"
+                message = if (found.isEmpty()) "По запросу станции не найдены." else if (russianOnly) "Российских станций найдено: ${found.size}" else "Станций найдено: ${found.size}"
             } catch (e: Exception) {
-                message = "Каталог недоступен, но DimLife Radio можно слушать. Проверь интернет для каталога."
+                message = "Каталог временно недоступен. Проверь подключение к интернету."
             } finally {
                 loading = false
             }
         }
     }
 
-    LaunchedEffect(Unit) { loadStations() }
+    LaunchedEffect(Unit) { loadStations("", true) }
 
     val visibleStations = when (activeTab) {
         "Избранное" -> (stations + customStations).distinctBy { it.uuid }.filter { favorites.contains(it.uuid) }
         "Мои URL" -> customStations.toList()
+        "Россия" -> (stations + customStations).distinctBy { it.uuid }.filter { it.country.equals("Russia", true) || it.uuid == DIMLIFE_STATION.uuid }
         else -> (stations + customStations).distinctBy { it.uuid }
     }
 
@@ -170,8 +171,8 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("DIMLIFE", color = TextMain, fontWeight = FontWeight.Black, fontSize = 21.sp, letterSpacing = 2.sp)
-                    Text("РАДИО • МИР В ТВОИХ НАУШНИКАХ", color = Neon, fontSize = 9.sp, letterSpacing = 1.1.sp)
+                    Text("DimLife Радио", color = TextMain, fontWeight = FontWeight.Black, fontSize = 21.sp)
+                    Text("РОССИЙСКИЕ И МИРОВЫЕ СТАНЦИИ", color = Neon, fontSize = 9.sp, letterSpacing = 0.6.sp)
                 }
                 Box(Modifier.background(Panel, RoundedCornerShape(50)).padding(horizontal = 10.dp, vertical = 6.dp)) {
                     Text("● LIVE", color = Neon, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -215,13 +216,13 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
 
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                listOf("Популярные", "Избранное", "Мои URL").forEach { tab ->
+                listOf("Россия", "Популярные", "Избранное", "Мои URL").forEach { tab ->
                     val selected = activeTab == tab
                     Text(
                         tab,
                         color = if (selected) Bg else Muted,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 12.sp,
+                        fontSize = 10.sp,
                         modifier = Modifier.weight(1f).background(if (selected) Neon else Panel, RoundedCornerShape(12.dp))
                             .clickable { activeTab = tab }.padding(vertical = 12.dp),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -243,7 +244,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
                     )
                     Spacer(Modifier.width(8.dp))
                     Button(
-                        onClick = { loadStations(query.trim()) },
+                        onClick = { loadStations(query.trim(), activeTab == "Россия") },
                         colors = ButtonDefaults.buttonColors(containerColor = Neon, contentColor = Bg),
                         shape = RoundedCornerShape(12.dp)
                     ) { Text("НАЙТИ", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
@@ -350,11 +351,12 @@ private fun StationRow(
     }
 }
 
-private suspend fun fetchStations(search: String): List<RadioStation> = withContext(Dispatchers.IO) {
+private suspend fun fetchStations(search: String, russianOnly: Boolean): List<RadioStation> = withContext(Dispatchers.IO) {
+    val countryFilter = if (russianOnly) "&countrycode=RU" else ""
     val endpoint = if (search.isBlank()) {
-        "https://de1.api.radio-browser.info/json/stations/topclick/40"
+        if (russianOnly) "https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/RU?limit=60&hidebroken=true&order=clickcount&reverse=true" else "https://de1.api.radio-browser.info/json/stations/topclick/40"
     } else {
-        "https://de1.api.radio-browser.info/json/stations/search?name=${java.net.URLEncoder.encode(search, "UTF-8")}&limit=40&hidebroken=true&order=clickcount&reverse=true"
+        "https://de1.api.radio-browser.info/json/stations/search?name=${java.net.URLEncoder.encode(search, "UTF-8")}&limit=60&hidebroken=true&order=clickcount&reverse=true$countryFilter"
     }
     val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
         connectTimeout = 10000
