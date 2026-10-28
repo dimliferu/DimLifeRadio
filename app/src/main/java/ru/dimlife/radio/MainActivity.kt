@@ -63,6 +63,7 @@ private val Neon = Color(0xFF39FF88)
 private val TextMain = Color(0xFFE9FFF1)
 private val Muted = Color(0xFF8AA397)
 private val Border = Color(0xFF234234)
+private val DIMLIFE_STATION = RadioStation(name = "DimLife Radio", streamUrl = "https://radio.dimlife.ru/live.mp3", country = "DimLife", genre = "Собственный эфир", uuid = "dimlife-radio-main")
 
 data class RadioStation(
     val name: String,
@@ -88,7 +89,7 @@ class MainActivity : ComponentActivity() {
 private fun DimLifeRadioApp(player: ExoPlayer) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
-    val stations = remember { mutableStateListOf<RadioStation>() }
+    val stations = remember { mutableStateListOf(DIMLIFE_STATION) }
     val favorites = remember {
         mutableStateListOf<String>().apply {
             addAll(context.getSharedPreferences("dimlife_radio", 0)
@@ -104,7 +105,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
     var customName by remember { mutableStateOf("") }
     var customUrl by remember { mutableStateOf("") }
     var activeTab by remember { mutableStateOf("Популярные") }
-    var current by remember { mutableStateOf<RadioStation?>(null) }
+    var current by remember { mutableStateOf<RadioStation?>(DIMLIFE_STATION) }
     var loading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Подключись к станции и слушай весь мир") }
     var isPlaying by remember { mutableStateOf(false) }
@@ -138,10 +139,11 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
             try {
                 val found = withContext(Dispatchers.IO) { fetchStations(search) }
                 stations.clear()
-                stations.addAll(found)
-                message = if (found.isEmpty()) "Станций не найдено. Попробуй другой запрос." else "Найдено станций: ${found.size}"
+                stations.add(DIMLIFE_STATION)
+                stations.addAll(found.filterNot { it.uuid == DIMLIFE_STATION.uuid })
+                message = if (found.isEmpty()) "DimLife Radio готово. В каталоге по запросу ничего не найдено." else "DimLife Radio + станций в каталоге: ${found.size}"
             } catch (e: Exception) {
-                message = "Не удалось загрузить каталог. Проверь интернет и попробуй ещё раз."
+                message = "Каталог недоступен, но DimLife Radio можно слушать. Проверь интернет для каталога."
             } finally {
                 loading = false
             }
@@ -188,7 +190,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
                 Spacer(Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
-                        onClick = { if (player.isPlaying) player.pause() else if (current != null) player.play() },
+                        onClick = { if (player.isPlaying) player.pause() else play(current ?: DIMLIFE_STATION) },
                         colors = ButtonDefaults.buttonColors(containerColor = Neon, contentColor = Bg),
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.weight(1f)
