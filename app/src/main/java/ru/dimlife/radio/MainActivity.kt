@@ -3,6 +3,8 @@ package ru.dimlife.radio
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -338,8 +340,17 @@ private fun StationRow(
             .clickable(onClick = onPlay).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.size(42.dp).background(if (isCurrent) Neon else Color(0xFF1D3026), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-            Text(if (isCurrent) "▶" else "♫", color = if (isCurrent) Bg else Neon, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        if (station.uuid == DIMLIFE_STATION.uuid) {
+            AsyncImage(
+                model = "https://radio.dimlife.ru/dimlife_radio.png",
+                contentDescription = "Карточка DimLife Радио",
+                modifier = Modifier.size(52.dp).background(Color(0xFF1D3026), RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Box(Modifier.size(42.dp).background(if (isCurrent) Neon else Color(0xFF1D3026), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                Text(if (isCurrent) "▶" else "♫", color = if (isCurrent) Bg else Neon, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
         }
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
