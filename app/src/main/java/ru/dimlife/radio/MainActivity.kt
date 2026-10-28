@@ -224,7 +224,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         fontSize = 10.sp,
                         modifier = Modifier.weight(1f).background(if (selected) Neon else Panel, RoundedCornerShape(12.dp))
-                            .clickable { activeTab = tab }.padding(vertical = 12.dp),
+                            .clickable { activeTab = tab; if (tab == "Россия" || tab == "Популярные") loadStations("", tab == "Россия") }.padding(vertical = 12.dp),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
