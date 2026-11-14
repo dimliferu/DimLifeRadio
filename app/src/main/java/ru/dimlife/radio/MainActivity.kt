@@ -27,23 +27,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,13 +54,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
 
 private val Bg = Color(0xFF050807)
 private val Panel = Color(0xFF101914)
@@ -95,6 +82,13 @@ data class RadioStation(
     val favicon: String = ""
 )
 
+data class TrackHistoryEntry(
+    val title: String,
+    val artist: String,
+    val artwork: String?,
+    val playedAt: Long
+)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,25 +100,29 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun DimLifeRadioApp(player: ExoPlayer) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    val scope = rememberCoroutineScope()
     val prefs = remember { context.getSharedPreferences("dimlife_radio", 0) }
-    val stations = remember { mutableStateListOf(DIMLIFE_STATION) }
     val favorites = remember {
         mutableStateListOf<String>().apply {
             addAll(prefs.getStringSet("favorites", emptySet()) ?: emptySet())
         }
     }
-    val history = remember {
-        mutableStateListOf<String>().apply {
-            val saved = runCatching { JSONArray(prefs.getString("history", "[]")) }.getOrNull()
-            if (saved != null) for (i in 0 until saved.length()) add(saved.optString(i))
+    val trackHistory = remember {
+        mutableStateListOf<TrackHistoryEntry>().apply {
+            val saved = runCatching { JSONArray(prefs.getString("track_history_v2", "[]")) }.getOrNull()
+            if (saved != null) for (i in 0 until saved.length()) {
+                val item = saved.optJSONObject(i) ?: continue
+                add(TrackHistoryEntry(
+                    title = item.optString("title"),
+                    artist = item.optString("artist"),
+                    artwork = item.optString("artwork").takeIf { it.isNotBlank() },
+                    playedAt = item.optLong("playedAt")
+                ))
+            }
         }
     }
 
-    var query by remember { mutableStateOf("") }
     var activeTab by remember { mutableStateOf("Плеер") }
     var current by remember { mutableStateOf(DIMLIFE_STATION) }
-    var loading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("Выбери станцию и подключайся к эфиру") }
     var isPlaying by remember { mutableStateOf(false) }
     var trackTitle by remember { mutableStateOf("") }
@@ -135,13 +133,39 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
             override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
-                trackTitle = decodeMetadata(mediaMetadata.title?.toString().orEmpty())
-                trackArtist = decodeMetadata(mediaMetadata.artist?.toString().orEmpty())
-                trackArtwork = mediaMetadata.artworkUri?.toString()
+                val newTitle = decodeMetadata(mediaMetadata.title?.toString().orEmpty())
+                val newArtist = decodeMetadata(mediaMetadata.artist?.toString().orEmpty())
+                val newArtwork = mediaMetadata.artworkUri?.toString()
+                trackTitle = newTitle
+                trackArtist = newArtist
+                trackArtwork = newArtwork
+                if (newTitle.isNotBlank() || newArtist.isNotBlank()) {
+                    val entry = TrackHistoryEntry(
+                        title = newTitle.ifBlank { "Неизвестный трек" },
+                        artist = newArtist.ifBlank { "DimLife Radio" },
+                        artwork = newArtwork,
+                        playedAt = System.currentTimeMillis()
+                    )
+                    val last = trackHistory.firstOrNull()
+                    if (last?.title != entry.title || last.artist != entry.artist) {
+                        trackHistory.add(0, entry)
+                        while (trackHistory.size > 100) trackHistory.removeAt(trackHistory.lastIndex)
+                        val json = JSONArray()
+                        trackHistory.forEach { item ->
+                            json.put(org.json.JSONObject().apply {
+                                put("title", item.title)
+                                put("artist", item.artist)
+                                put("artwork", item.artwork.orEmpty())
+                                put("playedAt", item.playedAt)
+                            })
+                        }
+                        prefs.edit().putString("track_history_v2", json.toString()).apply()
+                    }
+                }
             }
             override fun onPlayerError(error: PlaybackException) {
                 isPlaying = false
-                message = "Не удалось подключиться. Попробуй другую станцию."
+                message = "Не удалось подключиться к DimLife Radio. Попробуй ещё раз."
             }
         }
         player.addListener(listener)
@@ -149,15 +173,6 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
             player.removeListener(listener)
             player.release()
         }
-    }
-
-    fun rememberStation(station: RadioStation) {
-        history.remove(station.name)
-        history.add(0, station.name)
-        while (history.size > 30) history.removeAt(history.lastIndex)
-        val json = JSONArray()
-        history.forEach { json.put(it) }
-        prefs.edit().putString("history", json.toString()).apply()
     }
 
     fun play(station: RadioStation) {
@@ -174,33 +189,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
         player.setMediaItem(MediaItem.fromUri(station.streamUrl))
         player.prepare()
         player.playWhenReady = true
-        rememberStation(station)
         message = "Прямой эфир"
-    }
-
-    fun loadStations(search: String = "") {
-        loading = true
-        scope.launch {
-            try {
-                val found = fetchStations(search)
-                stations.clear()
-                stations.add(DIMLIFE_STATION)
-                stations.addAll(found.filterNot { it.uuid == DIMLIFE_STATION.uuid })
-                message = if (found.isEmpty()) "Станции не найдены." else "Доступно станций: ${found.size}"
-            } catch (_: Exception) {
-                message = "Каталог временно недоступен. Собственная станция DimLife остаётся доступной."
-            } finally {
-                loading = false
-            }
-        }
-    }
-
-    LaunchedEffect(Unit) { loadStations() }
-
-    val visibleStations = when (activeTab) {
-        "Избранное" -> stations.distinctBy { it.uuid }.filter { favorites.contains(it.uuid) }
-        "История" -> history.mapNotNull { name -> stations.firstOrNull { it.name == name } }
-        else -> stations.distinctBy { it.uuid }
     }
 
     MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(
@@ -211,59 +200,33 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (activeTab) {
-                    "Плеер" -> PlayerScreen(
-                        current = current,
+                    "История" -> TrackHistoryScreen(trackHistory)
+                    else -> PlayerScreen(
+                        current = DIMLIFE_STATION,
                         playing = isPlaying,
                         message = message,
                         title = trackTitle,
                         artist = trackArtist,
                         artwork = trackArtwork,
-                        favorite = favorites.contains(current.uuid),
+                        favorite = favorites.contains(DIMLIFE_STATION.uuid),
                         onPlayPause = {
-                            if (player.isPlaying) player.pause() else play(current)
+                            if (player.isPlaying) player.pause() else play(DIMLIFE_STATION)
                         },
-                        onPrevious = {
-                            val index = stations.indexOfFirst { it.uuid == current.uuid }
-                            if (stations.isNotEmpty()) play(stations[(index - 1).coerceAtLeast(0)])
-                        },
-                        onNext = {
-                            val index = stations.indexOfFirst { it.uuid == current.uuid }
-                            if (stations.isNotEmpty()) play(stations[(index + 1).coerceAtMost(stations.lastIndex)])
-                        },
+                        onPrevious = {},
+                        onNext = {},
                         onShare = {
                             val send = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "${current.name}\n${current.streamUrl}\nСлушаю в DimLife Радио")
+                                putExtra(Intent.EXTRA_TEXT, "DimLife Radio\\nhttps://radio.dimlife.ru/live.mp3\\nСлушаю в DimLife Радио")
                             }
-                            context.startActivity(Intent.createChooser(send, "Поделиться станцией"))
+                            context.startActivity(Intent.createChooser(send, "Поделиться DimLife Radio"))
                         },
                         onHistory = { activeTab = "История" },
                         onFavorite = {
-                            if (favorites.contains(current.uuid)) favorites.remove(current.uuid)
-                            else favorites.add(current.uuid)
+                            if (favorites.contains(DIMLIFE_STATION.uuid)) favorites.remove(DIMLIFE_STATION.uuid)
+                            else favorites.add(DIMLIFE_STATION.uuid)
                             prefs.edit().putStringSet("favorites", favorites.toSet()).apply()
                         }
-                    )
-                    "Станции", "Избранное", "История" -> StationScreen(
-                        tab = activeTab,
-                        query = query,
-                        onQuery = { query = it },
-                        stations = visibleStations,
-                        selected = current.uuid,
-                        loading = loading,
-                        favorites = favorites,
-                        onSearch = { loadStations(query.trim()) },
-                        onSelect = { play(it); activeTab = "Плеер" },
-                        onFavorite = {
-                            if (favorites.contains(it.uuid)) favorites.remove(it.uuid)
-                            else favorites.add(it.uuid)
-                            prefs.edit().putStringSet("favorites", favorites.toSet()).apply()
-                        }
-                    )
-                    else -> PlayerScreen(
-                        current, isPlaying, message, trackTitle, trackArtist, trackArtwork,
-                        favorites.contains(current.uuid), { if (player.isPlaying) player.pause() else play(current) },
-                        {}, {}, {}, { activeTab = "История" }, {}
                     )
                 }
                 }
@@ -502,60 +465,67 @@ private fun StationScreen(
 
 @Composable
 private fun BottomNavigation(selected: String, onSelect: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth().background(Panel).padding(horizontal = 5.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly) {
-        listOf("Плеер" to "◉", "Станции" to "♫", "Избранное" to "♥", "История" to "◷").forEach { (name, icon) ->
+    Row(Modifier.fillMaxWidth().background(Panel).padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        listOf("Плеер" to "◉", "История" to "◷").forEach { (name, icon) ->
             Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(12.dp))
+                Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
                     .background(if (selected == name) Color(0xFF193525) else Color.Transparent)
-                    .clickable { onSelect(name) }.padding(vertical = 7.dp),
+                    .clickable { onSelect(name) }.padding(vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(icon, color = if (selected == name) Neon else Muted, fontSize = 19.sp)
-                Text(name, color = if (selected == name) Neon else Muted, fontSize = 9.sp)
+                Text(icon, color = if (selected == name) Neon else Muted, fontSize = 20.sp)
+                Text(name, color = if (selected == name) Neon else Muted, fontSize = 10.sp)
             }
         }
     }
 }
 
-private suspend fun fetchStations(search: String): List<RadioStation> = withContext(Dispatchers.IO) {
-    val encoded = URLEncoder.encode(search, "UTF-8")
-    val endpoint = if (search.isBlank()) {
-        "https://de1.api.radio-browser.info/json/stations?limit=100&hidebroken=true&order=clickcount&reverse=true"
-    } else {
-        "https://de1.api.radio-browser.info/json/stations/search?name=$encoded&limit=100&hidebroken=true&order=clickcount&reverse=true"
-    }
-    val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-        connectTimeout = 12000
-        readTimeout = 15000
-        requestMethod = "GET"
-        setRequestProperty("User-Agent", "DimLifeRadio/0.1.3 (Android)")
-        setRequestProperty("Accept", "application/json")
-    }
-    try {
-        val array = org.json.JSONArray(connection.inputStream.bufferedReader().use { it.readText() })
-        buildList {
-            for (i in 0 until array.length()) {
-                val item = array.optJSONObject(i) ?: continue
-                val stream = item.optString("url_resolved").ifBlank { item.optString("url") }
-                if (!stream.startsWith("http://") && !stream.startsWith("https://")) continue
-                val name = item.optString("name").trim()
-                if (name.isBlank()) continue
-                add(RadioStation(
-                    name = name,
-                    streamUrl = stream,
-                    country = item.optString("country"),
-                    genre = item.optString("tags").split(",").firstOrNull().orEmpty().trim(),
-                    uuid = item.optString("stationuuid").ifBlank { stream },
-                    favicon = item.optString("favicon")
-                ))
+@Composable
+private fun TrackHistoryScreen(history: List<TrackHistoryEntry>) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 16.dp)) {
+        Text("История треков", color = Neon, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Композиции, прозвучавшие в эфире DimLife Radio", color = Muted, fontSize = 12.sp)
+        Spacer(Modifier.height(16.dp))
+        if (history.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Пока нет полученных данных о треках.\nИстория заполнится автоматически, когда радио передаст название композиции.",
+                    color = Muted, textAlign = TextAlign.Center)
             }
-        }.distinctBy { it.uuid }
-    } finally {
-        connection.disconnect()
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                items(history, key = { "${it.playedAt}-${it.title}-${it.artist}" }) { track ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                            .background(Panel2).padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (!track.artwork.isNullOrBlank()) {
+                            AsyncImage(track.artwork, contentDescription = "Обложка трека",
+                                Modifier.size(54.dp).clip(RoundedCornerShape(11.dp)),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+                        } else {
+                            Box(Modifier.size(54.dp).clip(RoundedCornerShape(11.dp)).background(Panel),
+                                contentAlignment = Alignment.Center) {
+                                Text("♫", color = Neon, fontSize = 23.sp)
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(track.title, color = MainText, fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(track.artist, color = Muted, fontSize = 12.sp,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(java.text.DateFormat.getDateTimeInstance(
+                                java.text.DateFormat.SHORT, java.text.DateFormat.SHORT
+                            ).format(java.util.Date(track.playedAt)), color = Neon, fontSize = 10.sp)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
-
 
 private fun decodeMetadata(value: String): String {
     if (value.isBlank()) return value
