@@ -147,7 +147,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
                         playedAt = System.currentTimeMillis()
                     )
                     val last = trackHistory.firstOrNull()
-                    if (last?.title != entry.title || last.artist != entry.artist) {
+                    if (last == null || last.title != entry.title || last.artist != entry.artist) {
                         trackHistory.add(0, entry)
                         while (trackHistory.size > 100) trackHistory.removeAt(trackHistory.lastIndex)
                         val json = JSONArray()
@@ -217,7 +217,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
                         onShare = {
                             val send = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "DimLife Radio\\nhttps://radio.dimlife.ru/live.mp3\\nСлушаю в DimLife Радио")
+                                putExtra(Intent.EXTRA_TEXT, "DimLife Radio\nhttps://radio.dimlife.ru/live.mp3\nСлушаю в DimLife Радио")
                             }
                             context.startActivity(Intent.createChooser(send, "Поделиться DimLife Radio"))
                         },
