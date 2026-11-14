@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -53,6 +55,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.text.Html
+import android.os.Build
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -131,8 +135,8 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
             override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
-                trackTitle = mediaMetadata.title?.toString().orEmpty()
-                trackArtist = mediaMetadata.artist?.toString().orEmpty()
+                trackTitle = decodeMetadata(mediaMetadata.title?.toString().orEmpty())
+                trackArtist = decodeMetadata(mediaMetadata.artist?.toString().orEmpty())
                 trackArtwork = mediaMetadata.artworkUri?.toString()
             }
             override fun onPlayerError(error: PlaybackException) {
@@ -203,7 +207,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
         background = Bg, surface = Panel, primary = Neon, onPrimary = Bg,
         onBackground = MainText, onSurface = MainText
     )) {
-        Surface(Modifier.fillMaxSize(), color = Bg) {
+        Surface(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding(), color = Bg) {
             Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (activeTab) {
@@ -549,5 +553,16 @@ private suspend fun fetchStations(search: String): List<RadioStation> = withCont
         }.distinctBy { it.uuid }
     } finally {
         connection.disconnect()
+    }
+}
+
+
+private fun decodeMetadata(value: String): String {
+    if (value.isBlank()) return value
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        Html.fromHtml(value, Html.FROM_HTML_MODE_LEGACY).toString().trim()
+    } else {
+        @Suppress("DEPRECATION")
+        Html.fromHtml(value).toString().trim()
     }
 }
