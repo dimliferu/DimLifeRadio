@@ -205,6 +205,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
     )) {
         Surface(Modifier.fillMaxSize(), color = Bg) {
             Column(Modifier.fillMaxSize()) {
+                Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (activeTab) {
                     "Плеер" -> PlayerScreen(
                         current = current,
@@ -261,6 +262,7 @@ private fun DimLifeRadioApp(player: ExoPlayer) {
                         {}, {}, {}, { activeTab = "История" }, {}
                     )
                 }
+                }
                 BottomNavigation(activeTab) { activeTab = it }
             }
         }
@@ -284,7 +286,7 @@ private fun PlayerScreen(
     onFavorite: () -> Unit
 ) {
     Column(
-        Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = 22.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
@@ -417,7 +419,7 @@ private fun StationScreen(
     onSelect: (RadioStation) -> Unit,
     onFavorite: (RadioStation) -> Unit
 ) {
-    Column(Modifier.fillMaxSize().weight(1f).padding(horizontal = 18.dp, vertical = 14.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp)) {
         Text(
             when (tab) { "Избранное" -> "Избранные станции"; "История" -> "История прослушивания"; else -> "Мировые станции" },
             color = Neon, fontSize = 24.sp, fontWeight = FontWeight.Bold
