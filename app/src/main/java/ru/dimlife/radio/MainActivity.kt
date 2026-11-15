@@ -6,6 +6,8 @@ import android.text.Html
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,6 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,6 +41,8 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.sin
 import org.json.JSONArray
 
 private val Bg = Color(0xFF050807)
@@ -229,8 +236,8 @@ private fun HomeScreen(
         Text(title.ifBlank { "DimLife Radio" }, color = MainText, fontSize = 23.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Text(artist.ifBlank { "DimLife • Собственный эфир" }, color = Muted, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.height(18.dp))
-        Box(Modifier.fillMaxWidth().height(4.dp).clip(CircleShape).background(Brush.horizontalGradient(listOf(Neon, Color(0xFFB5FFD0), Neon))))
-        Text(if (playing) "● ПРЯМОЙ ЭФИР" else status.uppercase(), Modifier.padding(top = 10.dp), color = Neon, fontSize = 10.sp, letterSpacing = 1.sp)
+        RadioWaveform(playing, Modifier.fillMaxWidth().height(42.dp))
+        Text(if (playing) "● ПРЯМОЙ ЭФИР" else status.uppercase(), Modifier.padding(top = 7.dp), color = Neon, fontSize = 10.sp, letterSpacing = 1.sp)
         Spacer(Modifier.height(18.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("−", color = Muted)
@@ -250,6 +257,34 @@ private fun HomeScreen(
             ActionItem(if (favorite) "♥" else "♡", "В избранном", onFavorite)
         }
         Spacer(Modifier.height(12.dp))
+    }
+}
+
+
+@Composable
+private fun RadioWaveform(playing: Boolean, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "radio-wave")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing), RepeatMode.Reverse),
+        label = "wave-phase"
+    )
+    Canvas(modifier) {
+        val count = 40
+        val gap = size.width * 0.012f
+        val barWidth = (size.width - gap * (count - 1)) / count
+        for (i in 0 until count) {
+            val wave = abs(sin(i * 0.43f + phase * 5.8f)).toFloat()
+            val heightFactor = if (playing) 0.16f + wave * 0.78f else 0.12f + (i % 4) * 0.025f
+            val barHeight = size.height * heightFactor
+            drawRoundRect(
+                color = Neon.copy(alpha = if (playing) 0.55f + wave * 0.45f else 0.45f),
+                topLeft = Offset(i * (barWidth + gap), (size.height - barHeight) / 2f),
+                size = Size(barWidth, barHeight),
+                cornerRadius = CornerRadius(barWidth / 2f)
+            )
+        }
     }
 }
 
