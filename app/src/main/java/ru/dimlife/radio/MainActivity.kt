@@ -84,7 +84,15 @@ private fun DimLifeApp(player: ExoPlayer) {
             }
         }
     }
-    val favorites = remember { mutableStateListOf<String>().apply { addAll(prefs.getStringSet("favorites", emptySet()) ?: emptySet()) } }
+    val favorites = remember {
+        mutableStateListOf<Track>().apply {
+            val json = runCatching { JSONArray(prefs.getString("favorite_tracks_v1", "[]")) }.getOrNull()
+            if (json != null) for (i in 0 until json.length()) {
+                val o = json.optJSONObject(i) ?: continue
+                add(Track(o.optString("title"), o.optString("artist"), o.optString("artwork").takeIf { it.isNotBlank() }, o.optLong("playedAt")))
+            }
+        }
+    }
     var page by remember { mutableStateOf("Главная") }
     var playing by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Готово к подключению") }
@@ -97,12 +105,24 @@ private fun DimLifeApp(player: ExoPlayer) {
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    fun saveHistory() {
+    fun saveTracks(key: String, tracks: List<Track>) {
         val array = JSONArray()
-        history.forEach { t -> array.put(org.json.JSONObject().apply {
+        tracks.forEach { t -> array.put(org.json.JSONObject().apply {
             put("title", t.title); put("artist", t.artist); put("artwork", t.artwork.orEmpty()); put("playedAt", t.playedAt)
         }) }
-        prefs.edit().putString("track_history_v2", array.toString()).apply()
+        prefs.edit().putString(key, array.toString()).apply()
+    }
+    fun currentTrack(): Track = Track(
+        title.ifBlank { "DimLife Radio" },
+        artist.ifBlank { "Собственный эфир" },
+        cover,
+        System.currentTimeMillis()
+    )
+    fun toggleFavorite() {
+        val current = currentTrack()
+        val existing = favorites.indexOfFirst { it.title == current.title && it.artist == current.artist }
+        if (existing >= 0) favorites.removeAt(existing) else favorites.add(0, current)
+        saveTracks("favorite_tracks_v1", favorites)
     }
     fun startRadio() {
         status = "Подключаемся к эфиру…"
@@ -170,13 +190,10 @@ private fun DimLifeApp(player: ExoPlayer) {
             Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding().navigationBarsPadding()) {
                 when (page) {
                     "Главная" -> HomeScreen(
-                        playing, title, artist, cover, status, favorites.contains(STATION.name),
+                        playing, title, artist, cover, status, favorites.any { it.title == title.ifBlank { "DimLife Radio" } && it.artist == artist.ifBlank { "Собственный эфир" } },
                         onMenu = { scope.launch { drawer.open() } },
                         onPlay = { if (player.isPlaying) player.pause() else startRadio() },
-                        onFavorite = {
-                            if (favorites.contains(STATION.name)) favorites.remove(STATION.name) else favorites.add(STATION.name)
-                            prefs.edit().putStringSet("favorites", favorites.toSet()).apply()
-                        },
+                        onFavorite = { toggleFavorite() },
                         onNow = { page = "Сейчас в эфире" },
                         onHistory = { page = "История треков" },
                         onShare = {
@@ -188,14 +205,17 @@ private fun DimLifeApp(player: ExoPlayer) {
                     )
                     "Сейчас в эфире" -> NowPlayingScreen(title, artist, cover, playing, status, onBack = { page = "Главная" }, onPlay = { if (player.isPlaying) player.pause() else startRadio() })
                     "История треков" -> TrackHistoryScreen(history, onBack = { page = "Главная" })
-                    "Избранное" -> SimpleScreen("Избранное", if (favorites.isEmpty()) "Здесь будут ваши избранные станции. Пока доступен только DimLife Radio." else "♥  DimLife Radio\nСобственный эфир", onBack = { page = "Главная" })
+                    "Избранное" -> FavoritesScreen(favorites, onBack = { page = "Главная" }, onRemove = { track ->
+                        favorites.removeAll { it.title == track.title && it.artist == track.artist }
+                        saveTracks("favorite_tracks_v1", favorites)
+                    })
                     "Расписание" -> SimpleScreen("Расписание", "Актуальное расписание пока не опубликовано. Мы не показываем вымышленные программы.", onBack = { page = "Главная" })
                     "О радио" -> AboutScreen { page = "Главная" }
                     "Настройки" -> SettingsScreen(autoStart, notifications,
                         onAuto = { autoStart = it; prefs.edit().putBoolean("auto_start", it).apply() },
                         onNotifications = { notifications = it; prefs.edit().putBoolean("notifications", it).apply() },
                         onBack = { page = "Главная" })
-                    else -> HomeScreen(playing, title, artist, cover, status, false, { scope.launch { drawer.open() } }, { if (player.isPlaying) player.pause() else startRadio() }, {}, { page = "Сейчас в эфире" }, { page = "История треков" }, {}, volume, { volume = it; player.volume = it })
+                    else -> HomeScreen(playing, title, artist, cover, status, false, { scope.launch { drawer.open() } }, { if (player.isPlaying) player.pause() else startRadio() }, { toggleFavorite() }, { page = "Сейчас в эфире" }, { page = "История треков" }, {}, volume, { volume = it; player.volume = it })
                 }
                 BottomBar(page) { page = it }
             }
@@ -338,6 +358,33 @@ private fun TrackHistoryScreen(history: List<Track>, onBack: () -> Unit) {
                         Text(track.artist, color = Muted, fontSize = 12.sp)
                         Text(java.text.DateFormat.getDateTimeInstance().format(java.util.Date(track.playedAt)), color = Neon, fontSize = 10.sp)
                     }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun FavoritesScreen(favorites: List<Track>, onBack: () -> Unit, onRemove: (Track) -> Unit) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp)) {
+        PageHeader("Избранное", onBack)
+        Text("Любимые композиции из эфира DimLife Radio", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp, bottom = 14.dp))
+        if (favorites.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Здесь пока пусто. Нажми сердечко на плеере, чтобы сохранить текущий трек.", color = Muted, textAlign = TextAlign.Center)
+            }
+        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            items(favorites, key = { "${it.playedAt}-${it.title}-${it.artist}" }) { track ->
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel2).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (track.artwork != null) AsyncImage(track.artwork, "Обложка", Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop)
+                    else Box(Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)).background(Panel), contentAlignment = Alignment.Center) { Text("♫", color = Neon, fontSize = 23.sp) }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(track.title, color = MainText, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(track.artist, color = Muted, fontSize = 12.sp)
+                    }
+                    Text("♥", Modifier.clickable { onRemove(track) }.padding(8.dp), color = Neon, fontSize = 22.sp)
                 }
             }
         }
