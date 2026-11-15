@@ -521,8 +521,7 @@ private fun AboutScreen(onBack: () -> Unit) {
             Text("DimLife\nРадио", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
         Spacer(Modifier.height(22.dp))
-        Text("Хорошая музыка
-для лучших людей", color = MainText, fontWeight = FontWeight.Bold, fontSize = 19.sp, textAlign = TextAlign.Center)
+        Text("Хорошая музыка\nдля лучших людей", color = MainText, fontWeight = FontWeight.Bold, fontSize = 19.sp, textAlign = TextAlign.Center)
         Text("DimLife Радио — это твоя музыка, твоё настроение и твоя атмосфера. Мы вещаем 24/7, чтобы быть рядом с тобой в любой момент.", color = Muted, fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 18.dp))
         Spacer(Modifier.height(20.dp))
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel2).padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
