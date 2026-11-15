@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,17 +42,20 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import android.widget.Toast
 import kotlin.math.abs
 import kotlin.math.sin
 import org.json.JSONArray
 
-private val Bg = Color(0xFF050807)
-private val Panel = Color(0xFF101914)
-private val Panel2 = Color(0xFF19291F)
-private val Neon = Color(0xFF45F58B)
-private val MainText = Color(0xFFF1FFF5)
-private val Muted = Color(0xFF91A398)
-private val Line = Color(0xFF294333)
+private val Bg = Color(0xFF07070D)
+private val Panel = Color(0xFF11111D)
+private val Panel2 = Color(0xFF191827)
+private val Neon = Color(0xFF9B68FF)
+private val AccentBlue = Color(0xFF5D9CFF)
+private val MainText = Color(0xFFF5F2FF)
+private val Muted = Color(0xFFA39DB8)
+private val Line = Color(0xFF38304F)
 
 private val STATION = RadioStation(
     name = "DimLife Radio",
@@ -94,6 +98,8 @@ private fun DimLifeApp(player: ExoPlayer) {
         }
     }
     var page by remember { mutableStateOf("Главная") }
+    var showSplash by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { delay(1300); showSplash = false }
     var playing by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Готово к подключению") }
     var title by remember { mutableStateOf("") }
@@ -185,7 +191,7 @@ private fun DimLifeApp(player: ExoPlayer) {
                             onClick = { page = label; scope.launch { drawer.close() } },
                             modifier = Modifier.padding(horizontal = 12.dp),
                             colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = Color(0xFF193525),
+                                selectedContainerColor = Color(0xFF28203D),
                                 selectedTextColor = Neon,
                                 selectedIconColor = Neon,
                                 unselectedTextColor = MainText
@@ -197,7 +203,9 @@ private fun DimLifeApp(player: ExoPlayer) {
                 }
             }
         ) {
-            Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding().navigationBarsPadding()) {
+            if (showSplash) {
+                SplashScreen()
+            } else Column(Modifier.fillMaxSize().background(Bg).statusBarsPadding().navigationBarsPadding()) {
                 when (page) {
                     "Главная" -> HomeScreen(
                         playing, title, artist, cover, status, favorites.any { it.title == title.ifBlank { "DimLife Radio" } && it.artist == artist.ifBlank { "Собственный эфир" } },
@@ -219,7 +227,7 @@ private fun DimLifeApp(player: ExoPlayer) {
                         favorites.removeAll { it.title == track.title && it.artist == track.artist }
                         saveTracks("favorite_tracks_v1", favorites)
                     })
-                    "Расписание" -> SimpleScreen("Расписание", "Актуальное расписание пока не опубликовано. Мы не показываем вымышленные программы.", onBack = { page = "Главная" })
+                    "Расписание" -> ScheduleScreen(onBack = { page = "Главная" })
                     "О радио" -> AboutScreen { page = "Главная" }
                     "Настройки" -> SettingsScreen(autoStart, notifications,
                         onAuto = { autoStart = it; prefs.edit().putBoolean("auto_start", it).apply() },
@@ -227,7 +235,6 @@ private fun DimLifeApp(player: ExoPlayer) {
                         onBack = { page = "Главная" })
                     else -> HomeScreen(playing, title, artist, cover, status, false, { scope.launch { drawer.open() } }, { if (player.isPlaying) player.pause() else startRadio() }, { toggleFavorite() }, { page = "Сейчас в эфире" }, { page = "История треков" }, {}, volume, { volume = it; player.volume = it })
                 }
-                BottomBar(page) { page = it }
             }
         }
     }
@@ -239,57 +246,52 @@ private fun HomeScreen(
     onMenu: () -> Unit, onPlay: () -> Unit, onFavorite: () -> Unit, onNow: () -> Unit,
     onHistory: () -> Unit, onShare: () -> Unit, volume: Float, onVolume: (Float) -> Unit
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).background(Brush.linearGradient(listOf(Neon, Color(0xFF167A43)))), contentAlignment = Alignment.Center) {
-                Text("DL", color = Bg, fontWeight = FontWeight.Black, fontSize = 20.sp)
+    val context = LocalContext.current
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("☰", Modifier.clickable { onMenu() }.padding(6.dp), color = MainText, fontSize = 25.sp)
+            Spacer(Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("DimLife Радио", color = MainText, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                Text("Больше, чем просто музыка", color = Muted, fontSize = 10.sp)
             }
-            Spacer(Modifier.width(11.dp))
-            Column(Modifier.weight(1f)) {
-                Text("DimLife Радио", color = MainText, fontWeight = FontWeight.Black, fontSize = 19.sp)
-                Text("Частный InterNet Проект", color = Neon, fontSize = 10.sp, letterSpacing = 1.sp)
-            }
-            Text("● LIVE", color = if (playing) Neon else Muted, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-            Spacer(Modifier.width(10.dp))
-            Text("☰", Modifier.clickable { onMenu() }, color = Neon, fontSize = 25.sp)
+            Spacer(Modifier.weight(1f))
+            Text(if (favorite) "♥" else "♡", Modifier.clickable { onFavorite() }.padding(6.dp), color = Neon, fontSize = 25.sp)
+        }
+        Spacer(Modifier.height(20.dp))
+        Box(Modifier.size(214.dp).shadow(22.dp, CircleShape).clip(CircleShape)
+            .background(Brush.linearGradient(listOf(AccentBlue, Neon, Color(0xFF34215C))))
+            .padding(5.dp), contentAlignment = Alignment.Center) {
+            AsyncImage(model = cover ?: STATION.artwork, contentDescription = "DimLife Радио", modifier = Modifier.fillMaxSize().clip(CircleShape).border(2.dp, Neon.copy(alpha = .8f), CircleShape), contentScale = ContentScale.Crop)
         }
         Spacer(Modifier.height(22.dp))
-        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(26.dp)).background(Panel2), contentAlignment = Alignment.Center) {
-            AsyncImage(model = cover ?: STATION.artwork, contentDescription = "DimLife Radio", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .68f)))))
-            Column(Modifier.align(Alignment.BottomStart).padding(18.dp)) {
-                Text("DIMLIFE RADIO", color = Color.White, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 12.sp)
-                Text("Собственный эфир", color = Neon, fontSize = 11.sp)
-            }
-        }
-        Spacer(Modifier.height(22.dp))
-        Text(title.ifBlank { "DimLife Radio" }, color = MainText, fontSize = 23.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(artist.ifBlank { "DimLife • Собственный эфир" }, color = Muted, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.height(18.dp))
+        Text("Сейчас в эфире", color = Muted, fontSize = 12.sp)
+        Text(title.ifBlank { "Хорошая музыка" }, color = MainText, fontSize = 21.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp))
+        Text(artist.ifBlank { "для лучших людей" }, color = MainText, fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 2.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(if (playing) "● LIVE" else status, color = Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
+        Spacer(Modifier.height(16.dp))
         RadioWaveform(playing, Modifier.fillMaxWidth().height(42.dp))
-        Text(if (playing) "● ПРЯМОЙ ЭФИР" else status.uppercase(), Modifier.padding(top = 7.dp), color = Neon, fontSize = 10.sp, letterSpacing = 1.sp)
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(15.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("−", color = Muted)
-            Slider(value = volume, onValueChange = onVolume, modifier = Modifier.weight(1f), colors = SliderDefaults.colors(thumbColor = Neon, activeTrackColor = Neon, inactiveTrackColor = Line))
-            Text("+", color = Muted)
+            Text("◖", color = Muted, fontSize = 19.sp)
+            Slider(value = volume, onValueChange = onVolume, modifier = Modifier.weight(1f).padding(horizontal = 8.dp), colors = SliderDefaults.colors(thumbColor = Color(0xFFC7B5FF), activeTrackColor = Neon, inactiveTrackColor = Line))
+            Text("◗", color = Muted, fontSize = 19.sp)
         }
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            RoundControl("♫", false) { onNow() }
+            RoundControl("◀", false) { Toast.makeText(context, "Переключение треков недоступно в прямом эфире", Toast.LENGTH_SHORT).show() }
             RoundControl(if (playing) "Ⅱ" else "▶", true, onPlay)
-            RoundControl("♡", false) { onFavorite() }
+            RoundControl("▶", false) { Toast.makeText(context, "Переключение треков недоступно в прямом эфире", Toast.LENGTH_SHORT).show() }
         }
         Spacer(Modifier.height(18.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             ActionItem("↗", "Поделиться", onShare)
             ActionItem("☷", "История", onHistory)
-            ActionItem(if (favorite) "♥" else "♡", "В избранном", onFavorite)
+            ActionItem(if (favorite) "♥" else "♡", "В избранное", onFavorite)
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(18.dp))
     }
 }
-
 
 @Composable
 private fun RadioWaveform(playing: Boolean, modifier: Modifier = Modifier) {
@@ -315,6 +317,20 @@ private fun RadioWaveform(playing: Boolean, modifier: Modifier = Modifier) {
                 cornerRadius = CornerRadius(barWidth / 2f)
             )
         }
+    }
+}
+
+@Composable
+private fun SplashScreen() {
+    Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF111020), Bg, Color(0xFF090812)))).padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text("DimLife", color = MainText, fontSize = 42.sp, fontWeight = FontWeight.Bold)
+        Text("Радио", color = Color(0xFFC8B7FF), fontSize = 30.sp)
+        Spacer(Modifier.height(28.dp))
+        RadioWaveform(true, Modifier.fillMaxWidth().height(54.dp).padding(horizontal = 18.dp))
+        Spacer(Modifier.height(24.dp))
+        Text("Больше, чем просто музыка", color = Muted, fontSize = 13.sp)
+        Spacer(Modifier.height(44.dp))
+        CircularProgressIndicator(color = Neon, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
     }
 }
 
@@ -396,6 +412,28 @@ private fun FavoritesScreen(favorites: List<Track>, onBack: () -> Unit, onRemove
                     }
                     Text("♥", Modifier.clickable { onRemove(track) }.padding(8.dp), color = Neon, fontSize = 22.sp)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleScreen(onBack: () -> Unit) {
+    val slots = listOf(
+        Triple("00:00 – 06:00", "Ночная волна", "Спокойная музыка для твоих мыслей"),
+        Triple("06:00 – 10:00", "Утренний заряд", "Лёгкий старт дня"),
+        Triple("10:00 – 18:00", "Дневной эфир", "Лучшие хиты и новинки"),
+        Triple("18:00 – 22:00", "Вечерний настрой", "Атмосфера твоего вечера"),
+        Triple("22:00 – 00:00", "Ночная волна", "Спокойная музыка для твоих мыслей")
+    )
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp)) {
+        PageHeader("Расписание", onBack)
+        Spacer(Modifier.height(18.dp))
+        slots.forEach { slot ->
+            Column(Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(15.dp)).background(Panel).padding(15.dp)) {
+                Text(slot.first, color = Muted, fontSize = 11.sp)
+                Text(slot.second, color = MainText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp))
+                Text(slot.third, color = Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
             }
         }
     }
