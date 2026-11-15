@@ -29,6 +29,10 @@ android {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("stableDebug")
         }
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("stableDebug")
+            isMinifyEnabled = false
+        }
     }
 
     buildFeatures {
