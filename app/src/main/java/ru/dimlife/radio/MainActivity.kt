@@ -201,6 +201,11 @@ private fun DimLifeApp(player: ExoPlayer) {
                         )
                     }
                     Spacer(Modifier.weight(1f))
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf("VK" to "https://vk.com/", "➤" to "https://t.me/", "▶" to "https://youtube.com/", "◎" to "https://dimlife.ru").forEach { (label, url) ->
+                            Text(label, Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Panel2).clickable { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }.padding(vertical = 12.dp), color = MainText, textAlign = TextAlign.Center, fontSize = 13.sp)
+                        }
+                    }
                     Text("DIMLIFE • RADIO", Modifier.padding(22.dp), color = Neon, letterSpacing = 2.sp, fontSize = 11.sp)
                 }
             }
