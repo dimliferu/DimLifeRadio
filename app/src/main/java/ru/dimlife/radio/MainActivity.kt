@@ -386,8 +386,7 @@ private fun TrackHistoryScreen(history: List<Track>, onBack: () -> Unit) {
         PageHeader("История треков", onBack)
         Text("Композиции, прозвучавшие в эфире DimLife Radio", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp, bottom = 14.dp))
         if (history.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("История пока пуста.
-Она заполнится, когда поток передаст данные о композициях.", color = Muted, textAlign = TextAlign.Center)
+            Text("История пока пуста.\nОна заполнится, когда поток передаст данные о композициях.", color = Muted, textAlign = TextAlign.Center)
         } else LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
             items(history, key = { "${it.playedAt}-${it.title}-${it.artist}" }) { track ->
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel2).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -519,8 +518,7 @@ private fun AboutScreen(onBack: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Box(Modifier.fillMaxWidth().height(205.dp).clip(RoundedCornerShape(18.dp)).background(Panel2), contentAlignment = Alignment.Center) {
             AsyncImage(STATION.artwork, "DimLife Radio", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            Text("DimLife
-Радио", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("DimLife\nРадио", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
         Spacer(Modifier.height(22.dp))
         Text("Хорошая музыка
