@@ -12,8 +12,8 @@ android {
         applicationId = "ru.dimlife.radio"
         minSdk = 24
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.1.7"
+        versionCode = 9
+        versionName = "0.1.8"
     }
 
     signingConfigs {
@@ -63,6 +63,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.media3:media3-exoplayer:1.5.1")
     implementation("androidx.media3:media3-session:1.5.1")
+    implementation("com.google.guava:guava:33.3.1-android")
     implementation("io.coil-kt:coil-compose:2.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
