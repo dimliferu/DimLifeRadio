@@ -50,13 +50,13 @@ import kotlin.math.sin
 import org.json.JSONArray
 
 private val Bg = Color(0xFF07070D)
-private val Panel = Color(0xFF11111D)
-private val Panel2 = Color(0xFF191827)
-private val Neon = Color(0xFF9B68FF)
-private val AccentBlue = Color(0xFF5D9CFF)
-private val MainText = Color(0xFFF5F2FF)
-private val Muted = Color(0xFFA39DB8)
-private val Line = Color(0xFF38304F)
+private val Panel = Color(0xFF101A14)
+private val Panel2 = Color(0xFF14231A)
+private val Neon = Color(0xFF43F28B)
+private val AccentBlue = Color(0xFF1F9B58)
+private val MainText = Color(0xFFF3FFF7)
+private val Muted = Color(0xFF9BAFA2)
+private val Line = Color(0xFF294333)
 
 private val STATION = RadioStation(
     name = "DimLife Radio",
@@ -193,7 +193,7 @@ private fun DimLifeApp(player: ExoPlayer) {
                             onClick = { page = label; scope.launch { drawer.close() } },
                             modifier = Modifier.padding(horizontal = 12.dp),
                             colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = Color(0xFF28203D),
+                                selectedContainerColor = Color(0xFF193525),
                                 selectedTextColor = Neon,
                                 selectedIconColor = Neon,
                                 unselectedTextColor = MainText
@@ -261,14 +261,14 @@ private fun HomeScreen(
             Spacer(Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("DimLife Радио", color = MainText, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Text("Больше, чем просто музыка", color = Muted, fontSize = 10.sp)
+                Text("Частный InterNet Проект", color = Neon, fontSize = 10.sp, letterSpacing = 1.sp)
             }
             Spacer(Modifier.weight(1f))
             Text(if (favorite) "♥" else "♡", Modifier.clickable { onFavorite() }.padding(6.dp), color = Neon, fontSize = 25.sp)
         }
         Spacer(Modifier.height(20.dp))
         Box(Modifier.size(214.dp).shadow(22.dp, CircleShape).clip(CircleShape)
-            .background(Brush.linearGradient(listOf(AccentBlue, Neon, Color(0xFF34215C))))
+            .background(Brush.linearGradient(listOf(AccentBlue, Neon, Color(0xFF0B4728))))
             .padding(5.dp), contentAlignment = Alignment.Center) {
             AsyncImage(model = cover ?: STATION.artwork, contentDescription = "DimLife Радио", modifier = Modifier.fillMaxSize().clip(CircleShape).border(2.dp, Neon.copy(alpha = .8f), CircleShape), contentScale = ContentScale.Crop)
         }
@@ -282,7 +282,7 @@ private fun HomeScreen(
         Spacer(Modifier.height(15.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("◖", color = Muted, fontSize = 19.sp)
-            Slider(value = volume, onValueChange = onVolume, modifier = Modifier.weight(1f).padding(horizontal = 8.dp), colors = SliderDefaults.colors(thumbColor = Color(0xFFC7B5FF), activeTrackColor = Neon, inactiveTrackColor = Line))
+            Slider(value = volume, onValueChange = onVolume, modifier = Modifier.weight(1f).padding(horizontal = 8.dp), colors = SliderDefaults.colors(thumbColor = Color(0xFFB9FFD3), activeTrackColor = Neon, inactiveTrackColor = Line))
             Text("◗", color = Muted, fontSize = 19.sp)
         }
         Spacer(Modifier.height(12.dp))
@@ -330,15 +330,15 @@ private fun RadioWaveform(playing: Boolean, modifier: Modifier = Modifier) {
 
 @Composable
 private fun SplashScreen() {
-    Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF111020), Bg, Color(0xFF090812)))).padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Column(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF08120C), Bg, Color(0xFF050A07)))).padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("DimLife", color = MainText, fontSize = 42.sp, fontWeight = FontWeight.Bold)
-        Text("Радио", color = Color(0xFFC8B7FF), fontSize = 30.sp)
+        Text("Радио", color = Color(0xFF43F28B), fontSize = 30.sp)
         Spacer(Modifier.height(28.dp))
         RadioWaveform(true, Modifier.fillMaxWidth().height(54.dp).padding(horizontal = 18.dp))
         Spacer(Modifier.height(24.dp))
         Text("Больше, чем просто музыка", color = Muted, fontSize = 13.sp)
         Spacer(Modifier.height(44.dp))
-        CircularProgressIndicator(color = Neon, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {\n            Box(Modifier.fillMaxWidth(0.72f).height(4.dp).clip(RoundedCornerShape(8.dp)).background(Line)) {\n                Box(Modifier.fillMaxWidth(0.62f).fillMaxHeight().clip(RoundedCornerShape(8.dp)).background(Neon))\n            }\n            Text("Загрузка…", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 10.dp))\n        }
     }
 }
 
