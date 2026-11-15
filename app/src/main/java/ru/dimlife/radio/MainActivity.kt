@@ -457,6 +457,7 @@ private fun ScheduleScreen(onBack: () -> Unit) {
 
 @Composable
 private fun SettingsScreen(autoStart: Boolean, notifications: Boolean, quality: String, onAuto: (Boolean) -> Unit, onNotifications: (Boolean) -> Unit, onQuality: (String) -> Unit, onBack: () -> Unit) {
+    val context = LocalContext.current
     var qualityMenu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp)) {
         PageHeader("Настройки", onBack)
