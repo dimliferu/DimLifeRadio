@@ -23,7 +23,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Restore persistent debug signing key
+      - name: Restore persistent signing key
         id: restore-key
         uses: actions/cache@v4
         with:
@@ -32,25 +32,25 @@ jobs:
       - name: Generate signing key on first build
         if: steps.restore-key.outputs.cache-hit != 'true'
         run: keytool -genkeypair -v -keystore app/dimlife-debug.keystore -storetype PKCS12 -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=DimLife,C=US"
-      - name: Build debug APK
-        run: gradle assembleDebug
+      - name: Build signed release APK
+        run: gradle assembleRelease
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk DimLife-Radio-v0.1.3.apk
+        run: cp app/build/outputs/apk/release/app-release.apk DimLife-Radio-v0.1.4.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DimLife-Radio-v0.1.3-APK
-          path: DimLife-Radio-v0.1.3.apk
+          name: DimLife-Radio-v0.1.4-Release-APK
+          path: DimLife-Radio-v0.1.4.apk
           if-no-files-found: error
-          retention-days: 14
-      - name: Publish rolling APK release
+          retention-days: 30
+      - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.3
-          name: DimLife Радио v0.1.3
-          body: DimLife Радио v0.1.3. APK подписан стабильным ключом для установки обновлений поверх предыдущей версии. Версия для тестирования, не для Google Play.
+          tag_name: v0.1.4
+          name: DimLife Радио v0.1.4
+          body: Обновлённый интерфейс DimLife Радио в фирменном неоново-зелёном стиле. Подписанный Release APK.
           prerelease: false
-          make_latest: false
-          files: DimLife-Radio-v0.1.3.apk
+          make_latest: true
+          files: DimLife-Radio-v0.1.4.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
