@@ -91,6 +91,6 @@ class RadioWidgetActionReceiver : BroadcastReceiver() {
             } finally {
                 pending.finish()
             }
-        }, Executor { command -> Handler(Looper.getMainLooper()).post(command) }
+        }, Executor { command -> Handler(Looper.getMainLooper()).post(command) })
     }
 }
