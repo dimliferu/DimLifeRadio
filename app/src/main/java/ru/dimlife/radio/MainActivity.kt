@@ -129,12 +129,22 @@ private fun DimLifeApp(player: ExoPlayer) {
         player.setMediaItem(MediaItem.fromUri(STATION.streamUrl))
         player.prepare()
         player.playWhenReady = true
-        status = "Прямой эфир"
     }
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
-            override fun onIsPlayingChanged(isNowPlaying: Boolean) { playing = isNowPlaying }
+            override fun onIsPlayingChanged(isNowPlaying: Boolean) {
+                playing = isNowPlaying
+                if (isNowPlaying) status = "Прямой эфир"
+            }
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                status = when (playbackState) {
+                    Player.STATE_BUFFERING -> "Подключаемся к эфиру…"
+                    Player.STATE_READY -> if (player.isPlaying) "Прямой эфир" else "Готово к воспроизведению"
+                    Player.STATE_ENDED -> "Эфир завершён"
+                    else -> if (player.playWhenReady) "Подключаемся к эфиру…" else "Готово к подключению"
+                }
+            }
             override fun onMediaMetadataChanged(metadata: androidx.media3.common.MediaMetadata) {
                 val t = decode(metadata.title?.toString().orEmpty())
                 val a = decode(metadata.artist?.toString().orEmpty())
