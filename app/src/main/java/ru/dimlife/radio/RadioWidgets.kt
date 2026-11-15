@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import java.util.concurrent.Executor
 import android.widget.RemoteViews
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaController
@@ -90,6 +91,6 @@ class RadioWidgetActionReceiver : BroadcastReceiver() {
             } finally {
                 pending.finish()
             }
-        }, Handler(Looper.getMainLooper()))
+        }, Executor { command -> Handler(Looper.getMainLooper()).post(command) }
     }
 }
