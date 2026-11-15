@@ -339,7 +339,12 @@ private fun SplashScreen() {
         Spacer(Modifier.height(24.dp))
         Text("Больше, чем просто музыка", color = Muted, fontSize = 13.sp)
         Spacer(Modifier.height(44.dp))
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {\n            Box(Modifier.fillMaxWidth(0.72f).height(4.dp).clip(RoundedCornerShape(8.dp)).background(Line)) {\n                Box(Modifier.fillMaxWidth(0.62f).fillMaxHeight().clip(RoundedCornerShape(8.dp)).background(Neon))\n            }\n            Text("Загрузка…", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 10.dp))\n        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(Modifier.fillMaxWidth(0.72f).height(4.dp).clip(RoundedCornerShape(8.dp)).background(Line)) {
+                Box(Modifier.fillMaxWidth(0.62f).fillMaxHeight().clip(RoundedCornerShape(8.dp)).background(Neon))
+            }
+            Text("Загрузка…", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 10.dp))
+        }
     }
 }
 
@@ -381,7 +386,8 @@ private fun TrackHistoryScreen(history: List<Track>, onBack: () -> Unit) {
         PageHeader("История треков", onBack)
         Text("Композиции, прозвучавшие в эфире DimLife Radio", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp, bottom = 14.dp))
         if (history.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("История пока пуста.\nОна заполнится, когда поток передаст данные о композициях.", color = Muted, textAlign = TextAlign.Center)
+            Text("История пока пуста.
+Она заполнится, когда поток передаст данные о композициях.", color = Muted, textAlign = TextAlign.Center)
         } else LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
             items(history, key = { "${it.playedAt}-${it.title}-${it.artist}" }) { track ->
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel2).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -513,10 +519,12 @@ private fun AboutScreen(onBack: () -> Unit) {
         Spacer(Modifier.height(20.dp))
         Box(Modifier.fillMaxWidth().height(205.dp).clip(RoundedCornerShape(18.dp)).background(Panel2), contentAlignment = Alignment.Center) {
             AsyncImage(STATION.artwork, "DimLife Radio", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            Text("DimLife\nРадио", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("DimLife
+Радио", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
         Spacer(Modifier.height(22.dp))
-        Text("Хорошая музыка\nдля лучших людей", color = MainText, fontWeight = FontWeight.Bold, fontSize = 19.sp, textAlign = TextAlign.Center)
+        Text("Хорошая музыка
+для лучших людей", color = MainText, fontWeight = FontWeight.Bold, fontSize = 19.sp, textAlign = TextAlign.Center)
         Text("DimLife Радио — это твоя музыка, твоё настроение и твоя атмосфера. Мы вещаем 24/7, чтобы быть рядом с тобой в любой момент.", color = Muted, fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 18.dp))
         Spacer(Modifier.height(20.dp))
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel2).padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
