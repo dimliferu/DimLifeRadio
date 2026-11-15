@@ -7,6 +7,8 @@ import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.widget.RemoteViews
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaController
@@ -88,6 +90,6 @@ class RadioWidgetActionReceiver : BroadcastReceiver() {
             } finally {
                 pending.finish()
             }
-        }, context.mainExecutor)
+        }, Handler(Looper.getMainLooper()))
     }
 }
