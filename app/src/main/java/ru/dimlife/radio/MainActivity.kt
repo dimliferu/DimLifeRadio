@@ -156,7 +156,7 @@ private fun DimLifeApp(player: ExoPlayer) {
                     if (last == null || last.title != entry.title || last.artist != entry.artist) {
                         history.add(0, entry)
                         while (history.size > 100) history.removeAt(history.lastIndex)
-                        saveHistory()
+                        saveTracks("track_history_v2", history)
                     }
                 }
             }
