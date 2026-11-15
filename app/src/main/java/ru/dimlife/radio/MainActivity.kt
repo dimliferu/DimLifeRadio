@@ -270,7 +270,7 @@ private fun HomeScreen(
         Box(Modifier.size(214.dp).shadow(22.dp, CircleShape).clip(CircleShape)
             .background(Brush.linearGradient(listOf(AccentBlue, Neon, Color(0xFF0B4728))))
             .padding(5.dp), contentAlignment = Alignment.Center) {
-            AsyncImage(model = cover ?: STATION.artwork, contentDescription = "DimLife Радио", modifier = Modifier.fillMaxSize().clip(CircleShape).border(2.dp, Neon.copy(alpha = .8f), CircleShape), contentScale = ContentScale.Crop)
+            AsyncImage(model = STATION.artwork, contentDescription = "DimLife Радио", modifier = Modifier.fillMaxSize().clip(CircleShape).border(2.dp, Neon.copy(alpha = .8f), CircleShape), contentScale = ContentScale.Crop)
         }
         Spacer(Modifier.height(22.dp))
         Text("Сейчас в эфире", color = Muted, fontSize = 12.sp)
@@ -280,17 +280,18 @@ private fun HomeScreen(
         Spacer(Modifier.height(16.dp))
         RadioWaveform(playing, Modifier.fillMaxWidth().height(42.dp))
         Spacer(Modifier.height(15.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+            RoundControl("◀", false) { Toast.makeText(context, "Переключение треков недоступно в прямом эфире", Toast.LENGTH_SHORT).show() }
+            RoundControl(if (playing) "Ⅱ" else "▶", true, onPlay)
+            RoundControl("▶", false) { Toast.makeText(context, "Переключение треков недоступно в прямом эфире", Toast.LENGTH_SHORT).show() }
+        }
+        Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("◖", color = Muted, fontSize = 19.sp)
             Slider(value = volume, onValueChange = onVolume, modifier = Modifier.weight(1f).padding(horizontal = 8.dp), colors = SliderDefaults.colors(thumbColor = Color(0xFFB9FFD3), activeTrackColor = Neon, inactiveTrackColor = Line))
             Text("◗", color = Muted, fontSize = 19.sp)
         }
         Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-            RoundControl("◀", false) { Toast.makeText(context, "Переключение треков недоступно в прямом эфире", Toast.LENGTH_SHORT).show() }
-            RoundControl(if (playing) "Ⅱ" else "▶", true, onPlay)
-            RoundControl("▶", false) { Toast.makeText(context, "Переключение треков недоступно в прямом эфире", Toast.LENGTH_SHORT).show() }
-        }
         Spacer(Modifier.height(18.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             ActionItem("↗", "Поделиться", onShare)
