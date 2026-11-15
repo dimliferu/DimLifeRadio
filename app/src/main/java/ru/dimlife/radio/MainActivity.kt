@@ -24,6 +24,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
@@ -108,6 +109,7 @@ private fun DimLifeApp(player: ExoPlayer) {
     var volume by remember { mutableFloatStateOf(1f) }
     var autoStart by remember { mutableStateOf(prefs.getBoolean("auto_start", false)) }
     var notifications by remember { mutableStateOf(prefs.getBoolean("notifications", true)) }
+    var quality by remember { mutableStateOf(prefs.getString("quality", "Авто") ?: "Авто") }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -229,9 +231,10 @@ private fun DimLifeApp(player: ExoPlayer) {
                     })
                     "Расписание" -> ScheduleScreen(onBack = { page = "Главная" })
                     "О радио" -> AboutScreen { page = "Главная" }
-                    "Настройки" -> SettingsScreen(autoStart, notifications,
+                    "Настройки" -> SettingsScreen(autoStart, notifications, quality,
                         onAuto = { autoStart = it; prefs.edit().putBoolean("auto_start", it).apply() },
                         onNotifications = { notifications = it; prefs.edit().putBoolean("notifications", it).apply() },
+                        onQuality = { quality = it; prefs.edit().putString("quality", it).apply() },
                         onBack = { page = "Главная" })
                     else -> HomeScreen(playing, title, artist, cover, status, false, { scope.launch { drawer.open() } }, { if (player.isPlaying) player.pause() else startRadio() }, { toggleFavorite() }, { page = "Сейчас в эфире" }, { page = "История треков" }, {}, volume, { volume = it; player.volume = it })
                 }
@@ -440,18 +443,40 @@ private fun ScheduleScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun SettingsScreen(autoStart: Boolean, notifications: Boolean, onAuto: (Boolean) -> Unit, onNotifications: (Boolean) -> Unit, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+private fun SettingsScreen(autoStart: Boolean, notifications: Boolean, quality: String, onAuto: (Boolean) -> Unit, onNotifications: (Boolean) -> Unit, onQuality: (String) -> Unit, onBack: () -> Unit) {
+    var qualityMenu by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp)) {
         PageHeader("Настройки", onBack)
         Spacer(Modifier.height(18.dp))
-        SettingSwitch("Тёмная тема", "Фирменное оформление DimLife", true, {})
-        SettingSwitch("Автозапуск", "Подключаться к радио автоматически", autoStart, onAuto)
-        SettingSwitch("Уведомления", "Показывать статус эфира", notifications, onNotifications)
-        Spacer(Modifier.height(20.dp))
-        Text("О ПРИЛОЖЕНИИ", color = Neon, fontSize = 12.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Bold)
-        InfoRow("Версия", "0.1.4")
-        InfoRow("Сайт", "https://radio.dimlife.ru")
-        InfoRow("Поток", "MP3 • 128 Кбит/с")
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp, vertical = 5.dp)) {
+            SettingSwitch("◐   Тёмная тема", "Фирменное оформление DimLife", true, {})
+            HorizontalDivider(color = Line)
+            SettingSwitch("◉   Автозапуск при включении", "Запускать эфир автоматически", autoStart, onAuto)
+            HorizontalDivider(color = Line)
+            SettingSwitch("♟   Показывать уведомления", "Статус и управление воспроизведением", notifications, onNotifications)
+            HorizontalDivider(color = Line)
+            Box {
+                Row(Modifier.fillMaxWidth().clickable { qualityMenu = true }.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("⚙   Качество потока", Modifier.weight(1f), color = MainText, fontSize = 13.sp)
+                    Text("$quality   ›", color = Muted, fontSize = 12.sp)
+                }
+                DropdownMenu(expanded = qualityMenu, onDismissRequest = { qualityMenu = false }) {
+                    listOf("Авто", "128 Кбит/с").forEach { item ->
+                        DropdownMenuItem(text = { Text(item) }, onClick = { onQuality(item); qualityMenu = false })
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+        Text("О ПРИЛОЖЕНИИ", color = Muted, fontSize = 11.sp, letterSpacing = 1.3.sp)
+        Spacer(Modifier.height(10.dp))
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp)) {
+            InfoRow("Версия", "1.0.0")
+            InfoRow("Сайт", "https://radio.dimlife.ru")
+            Row(Modifier.fillMaxWidth().clickable { }.padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("✉   Написать нам", color = MainText, fontSize = 13.sp)
+            }
+        }
     }
 }
 
@@ -477,16 +502,25 @@ private fun InfoRow(label: String, value: String) {
 
 @Composable
 private fun AboutScreen(onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         PageHeader("О радио", onBack)
+        Spacer(Modifier.height(20.dp))
+        Box(Modifier.fillMaxWidth().height(205.dp).clip(RoundedCornerShape(18.dp)).background(Panel2), contentAlignment = Alignment.Center) {
+            AsyncImage(STATION.artwork, "DimLife Radio", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            Text("DimLife\nРадио", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        }
         Spacer(Modifier.height(22.dp))
-        AsyncImage(STATION.artwork, "DimLife Radio", Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)), contentScale = ContentScale.Crop)
+        Text("Хорошая музыка\nдля лучших людей", color = MainText, fontWeight = FontWeight.Bold, fontSize = 19.sp, textAlign = TextAlign.Center)
+        Text("DimLife Радио — это твоя музыка, твоё настроение и твоя атмосфера. Мы вещаем 24/7, чтобы быть рядом с тобой в любой момент.", color = Muted, fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 18.dp))
         Spacer(Modifier.height(20.dp))
-        Text("Хорошая музыка для лучших людей", color = MainText, fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center)
-        Text("DimLife Радио — твоя музыка, твоё настроение и твоя атмосфера. Мы вещаем 24/7, чтобы быть рядом с тобой в любой момент.", color = Muted, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 14.dp))
-        Spacer(Modifier.height(20.dp))
-        Text("●  В эфире 24/7", color = Neon, fontWeight = FontWeight.Bold)
-        Text("radio.dimlife.ru", color = Muted, fontSize = 12.sp)
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel2).padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("◉", color = Neon, fontSize = 28.sp)
+            Spacer(Modifier.width(14.dp))
+            Column {
+                Text("В эфире 24/7", color = MainText, fontWeight = FontWeight.SemiBold)
+                Text("radio.dimlife.ru", color = Muted, fontSize = 11.sp)
+            }
+        }
     }
 }
 
