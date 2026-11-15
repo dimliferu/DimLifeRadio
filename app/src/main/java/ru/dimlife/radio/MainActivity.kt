@@ -201,9 +201,11 @@ private fun DimLifeApp(player: ExoPlayer) {
                         )
                     }
                     Spacer(Modifier.weight(1f))
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        listOf("VK" to "https://vk.com/", "➤" to "https://t.me/", "▶" to "https://youtube.com/", "◎" to "https://dimlife.ru").forEach { (label, url) ->
-                            Text(label, Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Panel2).clickable { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }.padding(vertical = 12.dp), color = MainText, textAlign = TextAlign.Center, fontSize = 13.sp)
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf("◎" to "https://dimlife.ru", "ᴠκ" to "https://vk.ru/dimliferu", "➤" to "https://t.me/dimliferu").forEach { (label, url) ->
+                            Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Panel2).clickable { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }.padding(vertical = 13.dp), contentAlignment = Alignment.Center) {
+                                Text(label, color = Neon, textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                     Text("DIMLIFE • RADIO", Modifier.padding(22.dp), color = Neon, letterSpacing = 2.sp, fontSize = 11.sp)
@@ -460,8 +462,6 @@ private fun SettingsScreen(autoStart: Boolean, notifications: Boolean, quality: 
         PageHeader("Настройки", onBack)
         Spacer(Modifier.height(18.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp, vertical = 5.dp)) {
-            SettingSwitch("◐   Тёмная тема", "Фирменное оформление DimLife", true, {})
-            HorizontalDivider(color = Line)
             SettingSwitch("◉   Автозапуск при включении", "Запускать эфир автоматически", autoStart, onAuto)
             HorizontalDivider(color = Line)
             SettingSwitch("♟   Показывать уведомления", "Статус и управление воспроизведением", notifications, onNotifications)
@@ -483,9 +483,18 @@ private fun SettingsScreen(autoStart: Boolean, notifications: Boolean, quality: 
         Spacer(Modifier.height(10.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp)) {
             InfoRow("Версия", "0.1.7")
-            InfoRow("Сайт", "https://radio.dimlife.ru")
-            Row(Modifier.fillMaxWidth().clickable { }.padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("✉   Написать нам", color = MainText, fontSize = 13.sp)
+            Row(Modifier.fillMaxWidth().clickable {
+                context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://dimlife.ru")))
+            }.padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("◎   Сайт", Modifier.weight(1f), color = MainText, fontSize = 13.sp)
+                Text("https://dimlife.ru", color = Muted, fontSize = 12.sp)
+            }
+            HorizontalDivider(color = Line)
+            Row(Modifier.fillMaxWidth().clickable {
+                context.startActivity(Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:radio@dimlife.ru")))
+            }.padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("✉   Написать нам", Modifier.weight(1f), color = MainText, fontSize = 13.sp)
+                Text("radio@dimlife.ru", color = Muted, fontSize = 12.sp)
             }
         }
     }
