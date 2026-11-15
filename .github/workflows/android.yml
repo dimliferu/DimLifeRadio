@@ -35,22 +35,22 @@ jobs:
       - name: Build signed release APK
         run: gradle assembleRelease
       - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk DimLife-Radio-v0.1.4.apk
+        run: cp app/build/outputs/apk/release/app-release.apk DimLife-Radio-v0.1.5.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DimLife-Radio-v0.1.4-Release-APK
-          path: DimLife-Radio-v0.1.4.apk
+          name: DimLife-Radio-v0.1.5-Release-APK
+          path: DimLife-Radio-v0.1.5.apk
           if-no-files-found: error
           retention-days: 30
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.4
-          name: DimLife Радио v0.1.4
+          tag_name: v0.1.5
+          name: DimLife Радио v0.1.5
           body: Обновлённый интерфейс DimLife Радио в фирменном неоново-зелёном стиле. Подписанный Release APK.
           prerelease: false
           make_latest: true
-          files: DimLife-Radio-v0.1.4.apk
+          files: DimLife-Radio-v0.1.5.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
