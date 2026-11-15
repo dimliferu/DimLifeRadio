@@ -477,7 +477,7 @@ private fun SettingsScreen(autoStart: Boolean, notifications: Boolean, quality: 
         Text("О ПРИЛОЖЕНИИ", color = Muted, fontSize = 11.sp, letterSpacing = 1.3.sp)
         Spacer(Modifier.height(10.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp)) {
-            InfoRow("Версия", "1.0.0")
+            InfoRow("Версия", "0.1.7")
             InfoRow("Сайт", "https://radio.dimlife.ru")
             Row(Modifier.fillMaxWidth().clickable { }.padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("✉   Написать нам", color = MainText, fontSize = 13.sp)
