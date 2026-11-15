@@ -41,7 +41,11 @@ import coil.compose.AsyncImage
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
+import android.content.ComponentName
+import androidx.compose.ui.res.painterResource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import android.widget.Toast
@@ -69,15 +73,32 @@ data class RadioStation(val name: String, val streamUrl: String, val subtitle: S
 data class Track(val title: String, val artist: String, val artwork: String?, val playedAt: Long)
 
 class MainActivity : ComponentActivity() {
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val player = ExoPlayer.Builder(this).build()
-        setContent { DimLifeApp(player) }
+        setContent { SplashScreen() }
+        val token = SessionToken(this, ComponentName(this, RadioPlaybackService::class.java))
+        val future = MediaController.Builder(this, token).buildAsync()
+        controllerFuture = future
+        future.addListener({
+            runCatching { future.get() }.onSuccess { controller ->
+                setContent { DimLifeApp(controller) }
+            }.onFailure {
+                Toast.makeText(this, "Не удалось подключиться к радио", Toast.LENGTH_LONG).show()
+            }
+        }, mainExecutor)
+    }
+
+    override fun onDestroy() {
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
+        super.onDestroy()
     }
 }
 
 @Composable
-private fun DimLifeApp(player: ExoPlayer) {
+private fun DimLifeApp(player: MediaController) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("dimlife_radio", 0) }
     val history = remember {
@@ -136,7 +157,7 @@ private fun DimLifeApp(player: ExoPlayer) {
         status = "Подключаемся к эфиру…"
         player.setMediaItem(MediaItem.fromUri(STATION.streamUrl))
         player.prepare()
-        player.playWhenReady = true
+        player.play()
     }
 
     DisposableEffect(player) {
@@ -171,7 +192,7 @@ private fun DimLifeApp(player: ExoPlayer) {
             override fun onPlayerError(error: PlaybackException) { playing = false; status = "Ошибка подключения. Нажми Play для повтора." }
         }
         player.addListener(listener)
-        onDispose { player.removeListener(listener); player.release() }
+        onDispose { player.removeListener(listener) }
     }
 
     MaterialTheme(colorScheme = darkColorScheme(
@@ -201,10 +222,10 @@ private fun DimLifeApp(player: ExoPlayer) {
                         )
                     }
                     Spacer(Modifier.weight(1f))
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                        listOf("◎" to "https://dimlife.ru", "ᴠκ" to "https://vk.ru/dimliferu", "➤" to "https://t.me/dimliferu").forEach { (label, url) ->
-                            Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(Panel2).clickable { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }.padding(vertical = 13.dp), contentAlignment = Alignment.Center) {
-                                Text(label, color = Neon, textAlign = TextAlign.Center, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp), horizontalArrangement = Arrangement.spacedBy(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf(R.drawable.ic_site to "https://dimlife.ru", R.drawable.ic_vk to "https://vk.ru/dimliferu", R.drawable.ic_telegram to "https://t.me/dimliferu").forEach { (icon, url) ->
+                            Box(Modifier.weight(1f).size(52.dp).clip(RoundedCornerShape(15.dp)).background(Panel2).clickable { context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))) }, contentAlignment = Alignment.Center) {
+                                Icon(painterResource(icon), contentDescription = url, tint = Neon, modifier = Modifier.size(27.dp))
                             }
                         }
                     }
