@@ -544,24 +544,87 @@ private fun InfoRow(label: String, value: String) {
 
 @Composable
 private fun AboutScreen(onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    val context = LocalContext.current
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
         PageHeader("О радио", onBack)
-        Spacer(Modifier.height(20.dp))
-        Box(Modifier.fillMaxWidth().height(205.dp).clip(RoundedCornerShape(18.dp)).background(Panel2), contentAlignment = Alignment.Center) {
-            AsyncImage(STATION.artwork, "DimLife Radio", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            Text("DimLife\nРадио", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        }
+        Spacer(Modifier.height(18.dp))
+        // The artwork already contains the DimLife Radio logo. Do not draw a second title over it.
+        AsyncImage(
+            model = STATION.artwork,
+            contentDescription = "Фирменная заставка DimLife Radio",
+            modifier = Modifier.fillMaxWidth().aspectRatio(1.35f).clip(RoundedCornerShape(22.dp)),
+            contentScale = ContentScale.Crop
+        )
         Spacer(Modifier.height(22.dp))
-        Text("Хорошая музыка\nдля лучших людей", color = MainText, fontWeight = FontWeight.Bold, fontSize = 19.sp, textAlign = TextAlign.Center)
-        Text("DimLife Радио — это твоя музыка, твоё настроение и твоя атмосфера. Мы вещаем 24/7, чтобы быть рядом с тобой в любой момент.", color = Muted, fontSize = 13.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 18.dp))
-        Spacer(Modifier.height(20.dp))
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel2).padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("◉", color = Neon, fontSize = 28.sp)
-            Spacer(Modifier.width(14.dp))
-            Column {
-                Text("В эфире 24/7", color = MainText, fontWeight = FontWeight.SemiBold)
-                Text("radio.dimlife.ru", color = Muted, fontSize = 11.sp)
+        Text("Хорошая музыка для лучших людей", color = MainText, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, lineHeight = 28.sp)
+        Text(
+            "DimLife Радио — собственная радиостанция проекта DimLife. Это единый музыкальный эфир, который можно включить в приложении или слушать через интернет. Мы хотим, чтобы любимая музыка и настроение были рядом — дома, в дороге и во время повседневных дел.",
+            color = Muted, fontSize = 14.sp, lineHeight = 22.sp, modifier = Modifier.padding(top = 12.dp)
+        )
+
+        Spacer(Modifier.height(22.dp))
+        AboutInfoCard("СОБСТВЕННЫЙ ЭФИР", "Одна радиостанция DimLife — без лишнего списка чужих станций.", "♫")
+        Spacer(Modifier.height(10.dp))
+        AboutInfoCard("МУЗЫКА КРУГЛЫЙ ДЕНЬ", "Эфир доступен 24 часа в сутки. Открой приложение и нажми Play, чтобы подключиться.", "◷")
+        Spacer(Modifier.height(10.dp))
+        AboutInfoCard("СЛУШАЙ ГДЕ УДОБНО", "В приложении DimLife Радио или на сайте радиостанции.", "◉")
+
+        Spacer(Modifier.height(24.dp))
+        Text("КАК НАС СЛУШАТЬ", color = Neon, fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 1.2.sp)
+        Spacer(Modifier.height(10.dp))
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Panel).padding(16.dp)) {
+            Text("Сайт радиостанции", color = MainText, fontWeight = FontWeight.SemiBold)
+            Text("radio.dimlife.ru", color = Neon, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp).clickable {
+                context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://radio.dimlife.ru")))
+            })
+            HorizontalDivider(color = Line, modifier = Modifier.padding(vertical = 13.dp))
+            Text("Прямой аудиопоток", color = MainText, fontWeight = FontWeight.SemiBold)
+            Text("radio.dimlife.ru/live.mp3", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+        }
+
+        Spacer(Modifier.height(24.dp))
+        Text("ЧАСТЬ ПРОЕКТА DIMLIFE", color = Neon, fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 1.2.sp)
+        Text(
+            "DimLife — частный InterNet Проект. Радио — одно из направлений нашей площадки, наряду с интернет-сервисами и другими проектами. Мы развиваем собственную цифровую среду и делаем её удобнее.",
+            color = Muted, fontSize = 14.sp, lineHeight = 22.sp, modifier = Modifier.padding(top = 9.dp)
+        )
+        Spacer(Modifier.height(18.dp))
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Panel2).clickable {
+                context.startActivity(Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:radio@dimlife.ru")))
+            }.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("✉", color = Neon, fontSize = 25.sp)
+            Spacer(Modifier.width(13.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Есть вопрос или предложение?", color = MainText, fontWeight = FontWeight.Bold)
+                Text("radio@dimlife.ru", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 3.dp))
             }
+            Text("›", color = Neon, fontSize = 26.sp)
+        }
+        Spacer(Modifier.height(24.dp))
+        Text("DimLife Радио • Частный InterNet Проект", color = Muted, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun AboutInfoCard(title: String, description: String, symbol: String) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(17.dp)).background(Panel2).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(Color(0xFF193525)), contentAlignment = Alignment.Center) {
+            Text(symbol, color = Neon, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.width(13.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = MainText, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            Text(description, color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }
