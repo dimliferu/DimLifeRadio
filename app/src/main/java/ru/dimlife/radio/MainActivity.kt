@@ -2,8 +2,6 @@ package ru.dimlife.radio
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.Html
-import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
@@ -178,8 +176,8 @@ private fun DimLifeApp(player: MediaController) {
                 }
             }
             override fun onMediaMetadataChanged(metadata: androidx.media3.common.MediaMetadata) {
-                val t = decode(metadata.title?.toString().orEmpty())
-                val a = decode(metadata.artist?.toString().orEmpty())
+                val t = decodeMetadata(metadata.title?.toString().orEmpty())
+                val a = decodeMetadata(metadata.artist?.toString().orEmpty())
                 val art = metadata.artworkUri?.toString()
                 title = t; artist = a; cover = art
                 if (t.isNotBlank() || a.isNotBlank()) {
@@ -652,19 +650,3 @@ private fun BottomBar(page: String, onSelect: (String) -> Unit) {
     }
 }
 
-private fun decode(value: String): String {
-    if (value.isBlank()) return value
-    var decoded = value.trim()
-    // Some radio servers send metadata with HTML entities encoded more than once.
-    repeat(3) {
-        val next = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Html.fromHtml(decoded, Html.FROM_HTML_MODE_LEGACY).toString().trim()
-        } else {
-            @Suppress("DEPRECATION")
-            Html.fromHtml(decoded).toString().trim()
-        }
-        if (next == decoded) return decoded
-        decoded = next
-    }
-    return decoded
-}
