@@ -43,11 +43,10 @@ class RadioPlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onDestroy() {
-        mediaSession?.run {
-            player.release()
-            release()
-        }
+        // Release the session before its player so no controller can address a released player.
+        mediaSession?.release()
         mediaSession = null
+        if (::player.isInitialized) player.release()
         super.onDestroy()
     }
 }
