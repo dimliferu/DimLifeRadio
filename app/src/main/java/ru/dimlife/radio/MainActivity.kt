@@ -581,7 +581,7 @@ private fun AboutScreen(onBack: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         Text("ЧАСТЬ ПРОЕКТА DIMLIFE", color = Neon, fontWeight = FontWeight.Bold, fontSize = 13.sp, letterSpacing = 1.2.sp)
         Text(
-            "DimLife — частный InterNet Проект. Радио — одно из направлений нашей площадки, наряду с интернет-сервисами и другими проектами. Мы развиваем собственную цифровую среду и делаем её удобнее.",
+            "DimLife — частный ИнтерNet Проект. Радио — одно из направлений нашей площадки, наряду с интернет-сервисами и другими проектами. Мы развиваем собственную цифровую среду и делаем её удобнее.",
             color = Muted, fontSize = 14.sp, lineHeight = 22.sp, modifier = Modifier.padding(top = 9.dp)
         )
         Spacer(Modifier.height(18.dp))
