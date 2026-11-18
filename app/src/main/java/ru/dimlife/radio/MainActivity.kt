@@ -497,7 +497,7 @@ private fun SettingsScreen(autoStart: Boolean, onAuto: (Boolean) -> Unit, onBack
         Text("О ПРИЛОЖЕНИИ", color = Muted, fontSize = 11.sp, letterSpacing = 1.3.sp)
         Spacer(Modifier.height(10.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp)) {
-            InfoRow("Версия", "0.2.1")
+            InfoRow("Версия", "0.2.2")
             Row(Modifier.fillMaxWidth().clickable {
                 context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://dimlife.ru")))
             }.padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
