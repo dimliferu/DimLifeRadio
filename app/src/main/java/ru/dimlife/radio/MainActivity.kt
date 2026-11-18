@@ -1,6 +1,7 @@
 package ru.dimlife.radio
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
@@ -151,7 +153,16 @@ private fun DimLifeApp(player: MediaController) {
     }
     fun startRadio() {
         status = "Подключаемся к эфиру…"
-        player.setMediaItem(MediaItem.fromUri(STATION.streamUrl))
+        val stationMetadata = MediaMetadata.Builder()
+            .setTitle(STATION.name)
+            .setArtist(STATION.subtitle)
+            .setArtworkUri(Uri.parse(STATION.artwork))
+            .build()
+        val stationItem = MediaItem.Builder()
+            .setUri(STATION.streamUrl)
+            .setMediaMetadata(stationMetadata)
+            .build()
+        player.setMediaItem(stationItem)
         player.prepare()
         player.play()
     }
