@@ -129,8 +129,6 @@ private fun DimLifeApp(player: MediaController) {
     var cover by remember { mutableStateOf<String?>(null) }
     var volume by remember { mutableFloatStateOf(1f) }
     var autoStart by remember { mutableStateOf(prefs.getBoolean("auto_start", false)) }
-    var notifications by remember { mutableStateOf(prefs.getBoolean("notifications", true)) }
-    var quality by remember { mutableStateOf(prefs.getString("quality", "Авто") ?: "Авто") }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -264,11 +262,11 @@ private fun DimLifeApp(player: MediaController) {
                     })
                     "Расписание" -> ScheduleScreen(onBack = { page = "Главная" })
                     "О радио" -> AboutScreen { page = "Главная" }
-                    "Настройки" -> SettingsScreen(autoStart, notifications, quality,
+                    "Настройки" -> SettingsScreen(
+                        autoStart = autoStart,
                         onAuto = { autoStart = it; prefs.edit().putBoolean("auto_start", it).apply() },
-                        onNotifications = { notifications = it; prefs.edit().putBoolean("notifications", it).apply() },
-                        onQuality = { quality = it; prefs.edit().putString("quality", it).apply() },
-                        onBack = { page = "Главная" })
+                        onBack = { page = "Главная" }
+                    )
                     else -> HomeScreen(playing, title, artist, cover, status, false, { scope.launch { drawer.open() } }, { if (player.isPlaying) player.pause() else startRadio() }, { toggleFavorite() }, { page = "Сейчас в эфире" }, { page = "История треков" }, {}, volume, { volume = it; player.volume = it })
                 }
             }
@@ -482,34 +480,24 @@ private fun ScheduleScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun SettingsScreen(autoStart: Boolean, notifications: Boolean, quality: String, onAuto: (Boolean) -> Unit, onNotifications: (Boolean) -> Unit, onQuality: (String) -> Unit, onBack: () -> Unit) {
+private fun SettingsScreen(autoStart: Boolean, onAuto: (Boolean) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
-    var qualityMenu by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp)) {
         PageHeader("Настройки", onBack)
         Spacer(Modifier.height(18.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp, vertical = 5.dp)) {
             SettingSwitch("◉   Автоподключение при запуске", "Включать эфир при открытии приложения", autoStart, onAuto)
             HorizontalDivider(color = Line)
-            SettingSwitch("♟   Показывать уведомления", "Статус и управление воспроизведением", notifications, onNotifications)
-            HorizontalDivider(color = Line)
-            Box {
-                Row(Modifier.fillMaxWidth().clickable { qualityMenu = true }.padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("⚙   Качество потока", Modifier.weight(1f), color = MainText, fontSize = 13.sp)
-                    Text("$quality   ›", color = Muted, fontSize = 12.sp)
-                }
-                DropdownMenu(expanded = qualityMenu, onDismissRequest = { qualityMenu = false }) {
-                    listOf("Авто", "128 Кбит/с").forEach { item ->
-                        DropdownMenuItem(text = { Text(item) }, onClick = { onQuality(item); qualityMenu = false })
-                    }
-                }
+            Row(Modifier.fillMaxWidth().padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("♫   Качество потока", Modifier.weight(1f), color = MainText, fontSize = 13.sp)
+                Text("128 Кбит/с", color = Muted, fontSize = 12.sp)
             }
         }
         Spacer(Modifier.height(24.dp))
         Text("О ПРИЛОЖЕНИИ", color = Muted, fontSize = 11.sp, letterSpacing = 1.3.sp)
         Spacer(Modifier.height(10.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp)) {
-            InfoRow("Версия", "0.2.0")
+            InfoRow("Версия", "0.2.1")
             Row(Modifier.fillMaxWidth().clickable {
                 context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://dimlife.ru")))
             }.padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
