@@ -2,6 +2,7 @@ package ru.dimlife.radio
 
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -37,7 +38,15 @@ class RadioPlaybackService : MediaSessionService() {
                 RadioWidgetUpdater.updateAll(this@RadioPlaybackService, player)
             }
         })
-        mediaSession = MediaSession.Builder(this, player).build()
+        mediaSession = MediaSession.Builder(this, object : ForwardingPlayer(player) {
+            override fun getMediaMetadata(): MediaMetadata {
+                val metadata = super.getMediaMetadata()
+                return metadata.buildUpon()
+                    .setTitle(decodeMetadata(metadata.title?.toString().orEmpty()))
+                    .setArtist(decodeMetadata(metadata.artist?.toString().orEmpty()))
+                    .build()
+            }
+        }).build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
