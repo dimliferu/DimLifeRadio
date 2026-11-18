@@ -37,7 +37,7 @@ object RadioWidgetUpdater {
         val ids = manager.getAppWidgetIds(ComponentName(context, provider))
         if (ids.isEmpty()) return
         val title = player?.mediaMetadata?.title?.toString()?.takeIf { it.isNotBlank() } ?: "DimLife Radio"
-        val artist = player?.mediaMetadata?.artist?.toString()?.takeIf { it.isNotBlank() } ?: "Частный InterNet Проект"
+        val artist = player?.mediaMetadata?.artist?.toString()?.takeIf { it.isNotBlank() } ?: "Слушайте прямой эфир"
         val playing = player?.isPlaying == true
         ids.forEach { id ->
             val views = RemoteViews(context.packageName, layout)
