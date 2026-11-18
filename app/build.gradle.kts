@@ -12,8 +12,8 @@ android {
         applicationId = "ru.dimlife.radio"
         minSdk = 24
         targetSdk = 35
-        versionCode = 12
-        versionName = "0.2.1"
+        versionCode = 13
+        versionName = "0.2.2"
     }
 
     signingConfigs {
