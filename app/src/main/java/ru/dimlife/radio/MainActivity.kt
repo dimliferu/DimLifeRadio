@@ -203,6 +203,19 @@ private fun DimLifeApp(player: MediaController) {
             }
             override fun onPlayerError(error: PlaybackException) { playing = false; status = "Ошибка подключения. Нажми Play для повтора." }
         }
+        // Read the already-running service state immediately when the app connects.
+        playing = player.isPlaying
+        status = when (player.playbackState) {
+            Player.STATE_BUFFERING -> "Подключаемся к эфиру…"
+            Player.STATE_READY -> if (player.isPlaying) "Прямой эфир" else "Готово к воспроизведению"
+            Player.STATE_ENDED -> "Эфир завершён"
+            else -> if (player.playWhenReady) "Подключаемся к эфиру…" else "Готово к подключению"
+        }
+        val currentMetadata = player.mediaMetadata
+        title = decodeMetadata(currentMetadata.title?.toString().orEmpty())
+        artist = decodeMetadata(currentMetadata.artist?.toString().orEmpty())
+        cover = currentMetadata.artworkUri?.toString()
+
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
     }
