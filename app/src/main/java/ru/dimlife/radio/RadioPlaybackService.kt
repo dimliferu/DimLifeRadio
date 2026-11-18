@@ -41,10 +41,14 @@ class RadioPlaybackService : MediaSessionService() {
         mediaSession = MediaSession.Builder(this, object : ForwardingPlayer(player) {
             override fun getMediaMetadata(): MediaMetadata {
                 val metadata = super.getMediaMetadata()
-                return metadata.buildUpon()
+                val builder = metadata.buildUpon()
                     .setTitle(decodeMetadata(metadata.title?.toString().orEmpty()))
                     .setArtist(decodeMetadata(metadata.artist?.toString().orEmpty()))
-                    .build()
+                // Keep track artwork when supplied; use DimLife Radio artwork only as fallback.
+                if (metadata.artworkUri == null && metadata.artworkData == null) {
+                    builder.setArtworkUri(android.net.Uri.parse("https://radio.dimlife.ru/dimlife_radio.png"))
+                }
+                return builder.build()
             }
         }).build()
     }
