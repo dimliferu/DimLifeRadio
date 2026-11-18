@@ -160,6 +160,11 @@ private fun DimLifeApp(player: MediaController) {
         player.play()
     }
 
+    // Reconnect automatically on app launch when the user enabled this option.
+    LaunchedEffect(player) {
+        if (autoStart && !player.isPlaying) startRadio()
+    }
+
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isNowPlaying: Boolean) {
@@ -484,7 +489,7 @@ private fun SettingsScreen(autoStart: Boolean, notifications: Boolean, quality: 
         PageHeader("Настройки", onBack)
         Spacer(Modifier.height(18.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp, vertical = 5.dp)) {
-            SettingSwitch("◉   Автозапуск при включении", "Запускать эфир автоматически", autoStart, onAuto)
+            SettingSwitch("◉   Автоподключение при запуске", "Включать эфир при открытии приложения", autoStart, onAuto)
             HorizontalDivider(color = Line)
             SettingSwitch("♟   Показывать уведомления", "Статус и управление воспроизведением", notifications, onNotifications)
             HorizontalDivider(color = Line)
@@ -661,6 +666,17 @@ private fun BottomBar(page: String, onSelect: (String) -> Unit) {
 
 private fun decode(value: String): String {
     if (value.isBlank()) return value
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) Html.fromHtml(value, Html.FROM_HTML_MODE_LEGACY).toString().trim()
-    else { @Suppress("DEPRECATION") Html.fromHtml(value).toString().trim() }
+    var decoded = value.trim()
+    // Some radio servers send metadata with HTML entities encoded more than once.
+    repeat(3) {
+        val next = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(decoded, Html.FROM_HTML_MODE_LEGACY).toString().trim()
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(decoded).toString().trim()
+        }
+        if (next == decoded) return decoded
+        decoded = next
+    }
+    return decoded
 }
