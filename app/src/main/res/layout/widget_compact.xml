@@ -22,7 +22,7 @@
         android:orientation="vertical">
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DIMLIFE RADIO" android:textColor="#43F28B" android:textStyle="bold" android:textSize="10sp" />
         <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="DimLife Radio" android:textColor="#F3FFF7" android:textStyle="bold" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" android:layout_marginTop="4dp" />
-        <TextView android:id="@+id/widget_artist" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Частный InterNet Проект" android:textColor="#9BAFA2" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:id="@+id/widget_artist" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Частный ИнтерNet Проект" android:textColor="#9BAFA2" android:textSize="11sp" android:maxLines="1" android:ellipsize="end" />
     </LinearLayout>
     <TextView android:id="@+id/widget_play" android:layout_width="48dp" android:layout_height="48dp" android:gravity="center" android:background="@drawable/widget_play_background" android:text="▶" android:textColor="#07070D" android:textStyle="bold" android:textSize="22sp" />
 </LinearLayout>
