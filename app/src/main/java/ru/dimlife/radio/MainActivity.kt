@@ -1,7 +1,6 @@
 package ru.dimlife.radio
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -156,7 +155,6 @@ private fun DimLifeApp(player: MediaController) {
         val stationMetadata = MediaMetadata.Builder()
             .setTitle(STATION.name)
             .setArtist(STATION.subtitle)
-            .setArtworkUri(Uri.parse(STATION.artwork))
             .build()
         val stationItem = MediaItem.Builder()
             .setUri(STATION.streamUrl)
@@ -438,8 +436,7 @@ private fun TrackHistoryScreen(history: List<Track>, onBack: () -> Unit) {
         } else LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
             items(history, key = { "${it.playedAt}-${it.title}-${it.artist}" }) { track ->
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel2).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (track.artwork != null) AsyncImage(track.artwork, "Обложка", Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop)
-                    else Box(Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)).background(Panel), contentAlignment = Alignment.Center) { Text("♫", color = Neon, fontSize = 23.sp) }
+                    AsyncImage(track.artwork ?: STATION.artwork, "Обложка", Modifier.size(54.dp).clip(RoundedCornerShape(10.dp)), contentScale = ContentScale.Crop)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(track.title, color = MainText, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
