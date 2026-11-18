@@ -65,7 +65,7 @@ private val Line = Color(0xFF294333)
 private val STATION = RadioStation(
     name = "DimLife Radio",
     streamUrl = "https://radio.dimlife.ru/live.mp3",
-    subtitle = "Частный InterNet Проект",
+    subtitle = "Частный ИнтерNet Проект",
     artwork = "https://radio.dimlife.ru/dimlife_radio.png"
 )
 
@@ -287,7 +287,7 @@ private fun HomeScreen(
             Spacer(Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("DimLife Радио", color = MainText, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-                Text("Частный InterNet Проект", color = Neon, fontSize = 10.sp, letterSpacing = 1.sp)
+                Text("Частный ИнтерNet Проект", color = Neon, fontSize = 10.sp, letterSpacing = 1.sp)
             }
             Spacer(Modifier.weight(1f))
             Text(if (favorite) "♥" else "♡", Modifier.clickable { onFavorite() }.padding(6.dp), color = Neon, fontSize = 25.sp)
@@ -600,7 +600,7 @@ private fun AboutScreen(onBack: () -> Unit) {
             Text("›", color = Neon, fontSize = 26.sp)
         }
         Spacer(Modifier.height(24.dp))
-        Text("DimLife Радио • Частный InterNet Проект", color = Muted, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Text("DimLife Радио • Частный ИнтерNet Проект", color = Muted, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(Modifier.height(12.dp))
     }
 }
