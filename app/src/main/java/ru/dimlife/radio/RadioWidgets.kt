@@ -9,18 +9,20 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
-import java.util.concurrent.Executor
+import android.util.Log
 import android.widget.RemoteViews
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
+import java.util.concurrent.Executor
 
 private const val ACTION_WIDGET_TOGGLE = "ru.dimlife.radio.WIDGET_TOGGLE"
-private const val ACTION_WIDGET_OPEN = "ru.dimlife.radio.WIDGET_OPEN"
+private const val TAG_WIDGET = "DimLifeRadioWidget"
 
 object RadioWidgetUpdater {
-    fun updateAll(context: Context, player: androidx.media3.common.Player? = null) {
+    fun updateAll(context: Context, player: Player? = null) {
         updateProvider(context, CompactRadioWidgetProvider::class.java, R.layout.widget_compact, player)
         updateProvider(context, ExpandedRadioWidgetProvider::class.java, R.layout.widget_expanded, player)
     }
@@ -29,7 +31,7 @@ object RadioWidgetUpdater {
         context: Context,
         provider: Class<out AppWidgetProvider>,
         layout: Int,
-        player: androidx.media3.common.Player?
+        player: Player?
     ) {
         val manager = AppWidgetManager.getInstance(context)
         val ids = manager.getAppWidgetIds(ComponentName(context, provider))
@@ -42,14 +44,24 @@ object RadioWidgetUpdater {
             views.setTextViewText(R.id.widget_title, title)
             views.setTextViewText(R.id.widget_artist, artist)
             views.setTextViewText(R.id.widget_play, if (playing) "Ⅱ" else "▶")
-            views.setOnClickPendingIntent(R.id.widget_play, PendingIntent.getBroadcast(
-                context, 7101, Intent(context, RadioWidgetActionReceiver::class.java).setAction(ACTION_WIDGET_TOGGLE),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            ))
-            views.setOnClickPendingIntent(R.id.widget_root, PendingIntent.getActivity(
-                context, 7102, Intent(context, MainActivity::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            ))
+            views.setOnClickPendingIntent(
+                R.id.widget_play,
+                PendingIntent.getBroadcast(
+                    context,
+                    7101,
+                    Intent(context, RadioWidgetActionReceiver::class.java).setAction(ACTION_WIDGET_TOGGLE),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
+            views.setOnClickPendingIntent(
+                R.id.widget_root,
+                PendingIntent.getActivity(
+                    context,
+                    7102,
+                    Intent(context, MainActivity::class.java),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            )
             manager.updateAppWidget(id, views)
         }
     }
@@ -70,13 +82,23 @@ class ExpandedRadioWidgetProvider : AppWidgetProvider() {
 class RadioWidgetActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_WIDGET_TOGGLE) return
-        val pending = goAsync()
+
+        val pendingResult = goAsync()
         val token = SessionToken(context, ComponentName(context, RadioPlaybackService::class.java))
-        val future: ListenableFuture<MediaController> = MediaController.Builder(context, token).buildAsync()
+        val future: ListenableFuture<MediaController>
+
+        try {
+            future = MediaController.Builder(context.applicationContext, token).buildAsync()
+        } catch (error: Exception) {
+            Log.e(TAG_WIDGET, "Не удалось создать подключение к радиосервису", error)
+            pendingResult.finish()
+            return
+        }
+
         future.addListener({
             try {
                 val controller = future.get()
-                if (controller.isPlaying) {
+                if (controller.isPlaying || controller.playWhenReady) {
                     controller.pause()
                 } else {
                     if (controller.currentMediaItem == null) {
@@ -86,10 +108,11 @@ class RadioWidgetActionReceiver : BroadcastReceiver() {
                     controller.play()
                 }
                 RadioWidgetUpdater.updateAll(context, controller)
-                controller.release()
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                Log.e(TAG_WIDGET, "Ошибка управления радио из виджета", error)
             } finally {
-                pending.finish()
+                MediaController.releaseFuture(future)
+                pendingResult.finish()
             }
         }, Executor { command -> Handler(Looper.getMainLooper()).post(command) })
     }
