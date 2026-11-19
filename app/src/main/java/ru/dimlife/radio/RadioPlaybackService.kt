@@ -88,6 +88,7 @@ class RadioPlaybackService : MediaSessionService() {
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying && player.audioSessionId > 0 && equalizer == null) attachEqualizer(player.audioSessionId)
                 RadioWidgetUpdater.updateAll(this@RadioPlaybackService, player)
             }
 
@@ -149,6 +150,7 @@ class RadioPlaybackService : MediaSessionService() {
         sleepStopTask = null
         equalizer?.release()
         equalizer = null
+        getSharedPreferences("dimlife_radio_eq", MODE_PRIVATE).edit().putBoolean("available", false).apply()
         // Release the session before its player so no controller can address a released player.
         mediaSession?.release()
         mediaSession = null
