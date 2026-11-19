@@ -247,7 +247,7 @@ private fun DimLifeApp(player: MediaController) {
                     Spacer(Modifier.height(24.dp))
                     Text("DimLife Радио", Modifier.padding(horizontal = 22.dp), color = MainText, fontSize = 23.sp, fontWeight = FontWeight.Black)
                     Text("Больше, чем просто музыка", Modifier.padding(start = 22.dp, top = 4.dp, bottom = 22.dp), color = Muted, fontSize = 12.sp)
-                    listOf("Главная" to "⌂", "Сейчас в эфире" to "♫", "Расписание" to "☷", "Избранное" to "♡", "История треков" to "◷", "О радио" to "ⓘ", "Настройки" to "⚙").forEach { (label, icon) ->
+                    listOf("Главная" to "⌂", "Сейчас в эфире" to "♫", "Расписание" to "☷", "Избранное" to "♡", "История треков" to "◷", "Эквалайзер" to "≋", "О радио" to "ⓘ", "Настройки" to "⚙").forEach { (label, icon) ->
                         NavigationDrawerItem(
                             label = { Text(label, fontWeight = if (page == label) FontWeight.Bold else FontWeight.Normal) },
                             icon = { Text(icon, color = if (page == label) Neon else Muted, fontSize = 20.sp) },
@@ -299,6 +299,7 @@ private fun DimLifeApp(player: MediaController) {
                     )
                     "Сейчас в эфире" -> NowPlayingScreen(title, artist, cover, playing, status, onBack = { page = "Главная" }, onPlay = { if (player.isPlaying) player.pause() else startRadio() })
                     "История треков" -> TrackHistoryScreen(history, onBack = { page = "Главная" })
+                    "Эквалайзер" -> EqualizerScreen(onBack = { page = "Главная" })
                     "Избранное" -> FavoritesScreen(favorites, onBack = { page = "Главная" }, onRemove = { track ->
                         favorites.removeAll { it.title == track.title && it.artist == track.artist }
                         saveTracks("favorite_tracks_v1", favorites)
@@ -460,6 +461,90 @@ private fun NowPlayingScreen(title: String, artist: String, cover: String?, play
         Button(onClick = onPlay, colors = ButtonDefaults.buttonColors(containerColor = Neon, contentColor = Bg)) { Text(if (playing) "Пауза" else "Слушать эфир") }
         Spacer(Modifier.height(18.dp))
         Text("DimLife Радио — твоя музыка, твоё настроение и твоя атмосфера.", color = Muted, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+private fun EqualizerScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("dimlife_radio_eq", 0) }
+    var enabled by remember { mutableStateOf(prefs.getBoolean("enabled", false)) }
+    var available by remember { mutableStateOf(prefs.getBoolean("available", false)) }
+    val count = remember { prefs.getInt("band_count", 5).coerceIn(1, 10) }
+    val minLevel = remember { prefs.getInt("min_level", -1500) / 100f }
+    val maxLevel = remember { prefs.getInt("max_level", 1500) / 100f }
+    val levels = remember {
+        mutableStateListOf<Float>().apply {
+            repeat(count) { index -> add(prefs.getInt("band_$index", 0) / 100f) }
+        }
+    }
+    LaunchedEffect(Unit) {
+        repeat(8) {
+            available = prefs.getBoolean("available", false)
+            if (available) return@LaunchedEffect
+            delay(400)
+        }
+    }
+    fun sendEnabled(value: Boolean) {
+        enabled = value
+        context.startService(Intent(context, RadioPlaybackService::class.java).apply {
+            action = RadioPlaybackService.ACTION_EQUALIZER_ENABLED
+            putExtra(RadioPlaybackService.EXTRA_EQUALIZER_ENABLED, value)
+        })
+    }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp)) {
+        PageHeader("Эквалайзер", onBack)
+        Text("Настрой звучание DimLife Radio под себя", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp, bottom = 18.dp))
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Эквалайзер", color = MainText, fontWeight = FontWeight.SemiBold)
+                Text(if (enabled) "Обработка звука включена" else "Стандартное звучание", color = Muted, fontSize = 11.sp)
+            }
+            Switch(checked = enabled, onCheckedChange = { sendEnabled(it) }, colors = SwitchDefaults.colors(checkedThumbColor = Bg, checkedTrackColor = Neon))
+        }
+        if (!available) {
+            Text("Аудиоэффект станет доступен после подключения к эфиру. Если он не поддерживается устройством, эквалайзер останется недоступен.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 18.dp))
+        } else {
+            Text("ПОЛОСЫ ЧАСТОТ", color = Neon, fontSize = 11.sp, letterSpacing = 1.3.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp, bottom = 12.dp))
+            repeat(count) { index ->
+                val frequency = prefs.getInt("band_freq_$index", 0) / 1000
+                val label = when {
+                    frequency >= 1000 -> "%.1f кГц".format(java.util.Locale.getDefault(), frequency / 1000f)
+                    else -> "$frequency Гц"
+                }
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Panel).padding(horizontal = 15.dp, vertical = 12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(label, color = MainText, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("%+.1f дБ".format(java.util.Locale.getDefault(), levels[index]), color = Neon, fontSize = 12.sp)
+                    }
+                    Slider(
+                        value = levels[index].coerceIn(minLevel, maxLevel),
+                        onValueChange = { levels[index] = it },
+                        onValueChangeFinished = {
+                            context.startService(Intent(context, RadioPlaybackService::class.java).apply {
+                                action = RadioPlaybackService.ACTION_EQUALIZER_BAND
+                                putExtra(RadioPlaybackService.EXTRA_EQUALIZER_BAND, index)
+                                putExtra(RadioPlaybackService.EXTRA_EQUALIZER_LEVEL, (levels[index] * 100).toInt())
+                            })
+                        },
+                        valueRange = minLevel..maxLevel,
+                        enabled = enabled,
+                        colors = SliderDefaults.colors(thumbColor = Neon, activeTrackColor = Neon, inactiveTrackColor = Line)
+                    )
+                }
+                Spacer(Modifier.height(9.dp))
+            }
+            Text("Сбросить настройки", color = Neon, fontSize = 12.sp, modifier = Modifier.clickable {
+                repeat(count) { index ->
+                    levels[index] = 0f
+                    context.startService(Intent(context, RadioPlaybackService::class.java).apply {
+                        action = RadioPlaybackService.ACTION_EQUALIZER_BAND
+                        putExtra(RadioPlaybackService.EXTRA_EQUALIZER_BAND, index)
+                        putExtra(RadioPlaybackService.EXTRA_EQUALIZER_LEVEL, 0)
+                    })
+                }
+            }.padding(vertical = 12.dp))
+        }
     }
 }
 
