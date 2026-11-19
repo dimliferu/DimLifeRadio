@@ -286,7 +286,12 @@ private fun DimLifeApp(player: MediaController) {
                         onNow = { page = "Сейчас в эфире" },
                         onHistory = { page = "История треков" },
                         onShare = {
-                            val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "DimLife Radio — https://radio.dimlife.ru") }
+                            val trackName = title.ifBlank { "Прямой эфир" }
+                            val trackArtist = artist.ifBlank { "DimLife Radio" }
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "Сейчас играет: $trackName — $trackArtist\nDimLife Radio: https://radio.dimlife.ru")
+                            }
                             context.startActivity(Intent.createChooser(send, "Поделиться DimLife Radio"))
                         },
                         volume = volume,
@@ -304,8 +309,19 @@ private fun DimLifeApp(player: MediaController) {
                         autoStart = autoStart,
                         onAuto = { autoStart = it; prefs.edit().putBoolean("auto_start", it).apply() },
                         sleepRemainingSeconds = sleepRemainingSeconds,
-                        onSleepTimer = { minutes -> sleepTimerMinutes = minutes },
-                        onCancelSleepTimer = { sleepTimerMinutes = 0 },
+                        onSleepTimer = { minutes ->
+                            sleepTimerMinutes = minutes
+                            context.startService(Intent(context, RadioPlaybackService::class.java).apply {
+                                action = RadioPlaybackService.ACTION_START_SLEEP_TIMER
+                                putExtra(RadioPlaybackService.EXTRA_SLEEP_TIMER_MINUTES, minutes)
+                            })
+                        },
+                        onCancelSleepTimer = {
+                            sleepTimerMinutes = 0
+                            context.startService(Intent(context, RadioPlaybackService::class.java).apply {
+                                action = RadioPlaybackService.ACTION_CANCEL_SLEEP_TIMER
+                            })
+                        },
                         onBack = { page = "Главная" }
                     )
                     else -> HomeScreen(playing, title, artist, cover, status, false, { scope.launch { drawer.open() } }, { if (player.isPlaying) player.pause() else startRadio() }, { toggleFavorite() }, { page = "Сейчас в эфире" }, { page = "История треков" }, {}, volume, { volume = it; player.volume = it })
