@@ -128,6 +128,8 @@ private fun DimLifeApp(player: MediaController) {
     var cover by remember { mutableStateOf<String?>(null) }
     var volume by remember { mutableFloatStateOf(1f) }
     var autoStart by remember { mutableStateOf(prefs.getBoolean("auto_start", false)) }
+    var sleepRemainingSeconds by remember { mutableIntStateOf(0) }
+    var sleepTimerMinutes by remember { mutableIntStateOf(0) }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -163,6 +165,22 @@ private fun DimLifeApp(player: MediaController) {
         player.setMediaItem(stationItem)
         player.prepare()
         player.play()
+    }
+
+    // Sleep timer counts down independently from screen navigation.
+    LaunchedEffect(sleepTimerMinutes) {
+        if (sleepTimerMinutes > 0) {
+            sleepRemainingSeconds = sleepTimerMinutes * 60
+            while (sleepRemainingSeconds > 0) {
+                delay(1000)
+                sleepRemainingSeconds -= 1
+            }
+            player.pause()
+            sleepTimerMinutes = 0
+            Toast.makeText(context, "Таймер сна остановил эфир", Toast.LENGTH_SHORT).show()
+        } else {
+            sleepRemainingSeconds = 0
+        }
     }
 
     // Reconnect automatically on app launch when the user enabled this option.
@@ -285,6 +303,9 @@ private fun DimLifeApp(player: MediaController) {
                     "Настройки" -> SettingsScreen(
                         autoStart = autoStart,
                         onAuto = { autoStart = it; prefs.edit().putBoolean("auto_start", it).apply() },
+                        sleepRemainingSeconds = sleepRemainingSeconds,
+                        onSleepTimer = { minutes -> sleepTimerMinutes = minutes },
+                        onCancelSleepTimer = { sleepTimerMinutes = 0 },
                         onBack = { page = "Главная" }
                     )
                     else -> HomeScreen(playing, title, artist, cover, status, false, { scope.launch { drawer.open() } }, { if (player.isPlaying) player.pause() else startRadio() }, { toggleFavorite() }, { page = "Сейчас в эфире" }, { page = "История треков" }, {}, volume, { volume = it; player.volume = it })
@@ -499,13 +520,42 @@ private fun ScheduleScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun SettingsScreen(autoStart: Boolean, onAuto: (Boolean) -> Unit, onBack: () -> Unit) {
+private fun SettingsScreen(
+    autoStart: Boolean,
+    onAuto: (Boolean) -> Unit,
+    sleepRemainingSeconds: Int,
+    onSleepTimer: (Int) -> Unit,
+    onCancelSleepTimer: () -> Unit,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp)) {
         PageHeader("Настройки", onBack)
         Spacer(Modifier.height(18.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp, vertical = 5.dp)) {
             SettingSwitch("◉   Автоподключение при запуске", "Включать эфир при открытии приложения", autoStart, onAuto)
+            HorizontalDivider(color = Line)
+            Column(Modifier.fillMaxWidth().padding(vertical = 15.dp)) {
+                Text("◷   Таймер сна", color = MainText, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text(
+                    if (sleepRemainingSeconds > 0) "Остановка через %02d:%02d".format(sleepRemainingSeconds / 60, sleepRemainingSeconds % 60) else "Автоматически выключить эфир через выбранное время",
+                    color = Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp)
+                )
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    listOf(15, 30, 45, 60, 90).forEach { minutes ->
+                        Surface(
+                            modifier = Modifier.weight(1f).clickable { onSleepTimer(minutes) },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (sleepRemainingSeconds / 60 == minutes) Neon else Panel2
+                        ) {
+                            Text("$minutes", color = if (sleepRemainingSeconds / 60 == minutes) Bg else Neon, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 10.dp))
+                        }
+                    }
+                }
+                if (sleepRemainingSeconds > 0) {
+                    Text("Отменить таймер", color = Neon, fontSize = 12.sp, modifier = Modifier.clickable { onCancelSleepTimer() }.padding(top = 10.dp))
+                }
+            }
             HorizontalDivider(color = Line)
             Row(Modifier.fillMaxWidth().padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("♫   Качество потока", Modifier.weight(1f), color = MainText, fontSize = 13.sp)
@@ -516,7 +566,7 @@ private fun SettingsScreen(autoStart: Boolean, onAuto: (Boolean) -> Unit, onBack
         Text("О ПРИЛОЖЕНИИ", color = Muted, fontSize = 11.sp, letterSpacing = 1.3.sp)
         Spacer(Modifier.height(10.dp))
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(horizontal = 15.dp)) {
-            InfoRow("Версия", "0.2.5")
+            InfoRow("Версия", "0.2.9")
             Row(Modifier.fillMaxWidth().clickable {
                 context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://dimlife.ru")))
             }.padding(vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
