@@ -99,7 +99,7 @@ object RadioWidgetUpdater {
                             if (widgetArtworkKeys[id] == artworkKey) {
                                 val updatedViews = RemoteViews(context.packageName, layout)
                                 updatedViews.setImageViewBitmap(R.id.widget_artwork, bitmap)
-                                manager.updateAppWidget(id, updatedViews)
+                                manager.partiallyUpdateAppWidget(id, updatedViews)
                             }
                         }
                     } catch (error: Exception) {
