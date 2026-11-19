@@ -470,22 +470,29 @@ private fun EqualizerScreen(onBack: () -> Unit) {
     val prefs = remember { context.getSharedPreferences("dimlife_radio_eq", 0) }
     var enabled by remember { mutableStateOf(prefs.getBoolean("enabled", false)) }
     var available by remember { mutableStateOf(prefs.getBoolean("available", false)) }
-    val count = remember { prefs.getInt("band_count", 5).coerceIn(1, 10) }
-    val minLevel = remember { prefs.getInt("min_level", -1500) / 100f }
-    val maxLevel = remember { prefs.getInt("max_level", 1500) / 100f }
-    val levels = remember {
-        mutableStateListOf<Float>().apply {
-            repeat(count) { index -> add(prefs.getInt("band_$index", 0) / 100f) }
-        }
-    }
+    var count by remember { mutableIntStateOf(prefs.getInt("band_count", 5).coerceIn(1, 10)) }
+    var minLevel by remember { mutableFloatStateOf(prefs.getInt("min_level", -1500) / 100f) }
+    var maxLevel by remember { mutableFloatStateOf(prefs.getInt("max_level", 1500) / 100f) }
+    val levels = remember { mutableStateListOf<Float>() }
     LaunchedEffect(Unit) {
-        repeat(8) {
-            available = prefs.getBoolean("available", false)
-            if (available) return@LaunchedEffect
-            delay(400)
+        while (true) {
+            val ready = prefs.getBoolean("available", false)
+            if (ready != available) {
+                available = ready
+                if (ready) {
+                    count = prefs.getInt("band_count", 5).coerceIn(1, 10)
+                    minLevel = prefs.getInt("min_level", -1500) / 100f
+                    maxLevel = prefs.getInt("max_level", 1500) / 100f
+                    levels.clear()
+                    repeat(count) { index -> levels.add(prefs.getInt("band_$index", 0) / 100f) }
+                    enabled = prefs.getBoolean("enabled", false)
+                }
+            }
+            delay(500)
         }
     }
     fun sendEnabled(value: Boolean) {
+        if (!available) return
         enabled = value
         context.startService(Intent(context, RadioPlaybackService::class.java).apply {
             action = RadioPlaybackService.ACTION_EQUALIZER_ENABLED
@@ -498,12 +505,12 @@ private fun EqualizerScreen(onBack: () -> Unit) {
         Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Panel).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Эквалайзер", color = MainText, fontWeight = FontWeight.SemiBold)
-                Text(if (enabled) "Обработка звука включена" else "Стандартное звучание", color = Muted, fontSize = 11.sp)
+                Text(if (!available) "Ожидает подключения к эфиру" else if (enabled) "Обработка звука включена" else "Стандартное звучание", color = Muted, fontSize = 11.sp)
             }
-            Switch(checked = enabled, onCheckedChange = { sendEnabled(it) }, colors = SwitchDefaults.colors(checkedThumbColor = Bg, checkedTrackColor = Neon))
+            Switch(checked = enabled, onCheckedChange = { sendEnabled(it) }, enabled = available, colors = SwitchDefaults.colors(checkedThumbColor = Bg, checkedTrackColor = Neon))
         }
         if (!available) {
-            Text("Аудиоэффект станет доступен после подключения к эфиру. Если он не поддерживается устройством, эквалайзер останется недоступен.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 18.dp))
+            Text("Сначала включи радио и дождись начала воспроизведения. После создания аудиосессии здесь появятся настройки частот.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 18.dp))
         } else {
             Text("ПОЛОСЫ ЧАСТОТ", color = Neon, fontSize = 11.sp, letterSpacing = 1.3.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp, bottom = 12.dp))
             repeat(count) { index ->
@@ -515,10 +522,10 @@ private fun EqualizerScreen(onBack: () -> Unit) {
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Panel).padding(horizontal = 15.dp, vertical = 12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(label, color = MainText, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text("%+.1f дБ".format(java.util.Locale.getDefault(), levels[index]), color = Neon, fontSize = 12.sp)
+                        Text("%+.1f дБ".format(java.util.Locale.getDefault(), levels.getOrElse(index) { 0f }), color = Neon, fontSize = 12.sp)
                     }
                     Slider(
-                        value = levels[index].coerceIn(minLevel, maxLevel),
+                        value = levels.getOrElse(index) { 0f }.coerceIn(minLevel, maxLevel),
                         onValueChange = { levels[index] = it },
                         onValueChangeFinished = {
                             context.startService(Intent(context, RadioPlaybackService::class.java).apply {
@@ -528,7 +535,7 @@ private fun EqualizerScreen(onBack: () -> Unit) {
                             })
                         },
                         valueRange = minLevel..maxLevel,
-                        enabled = enabled,
+                        enabled = available,
                         colors = SliderDefaults.colors(thumbColor = Neon, activeTrackColor = Neon, inactiveTrackColor = Line)
                     )
                 }
