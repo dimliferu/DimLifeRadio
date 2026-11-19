@@ -299,7 +299,17 @@ private fun DimLifeApp(player: MediaController) {
                     )
                     "Сейчас в эфире" -> NowPlayingScreen(title, artist, cover, playing, status, onBack = { page = "Главная" }, onPlay = { if (player.isPlaying) player.pause() else startRadio() })
                     "История треков" -> TrackHistoryScreen(history, onBack = { page = "Главная" })
-                    "Статистика" -> { val sp = context.getSharedPreferences("dimlife_radio_stats", 0); val key = "day_" + java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()); ListeningStatsScreen(sp.getLong("total_ms", 0L), sp.getLong(key, 0L), sp.getInt("sessions", 0), onBack = { page = "Главная" }) }
+                    "Статистика" -> {
+                        val sp = context.getSharedPreferences("dimlife_radio_stats", 0)
+                        val keyFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                        val labelFormat = java.text.SimpleDateFormat("EEE, d MMM", java.util.Locale.getDefault())
+                        val daily = (6 downTo 0).map { offset ->
+                            val date = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -offset) }.time
+                            val dateKey = "day_" + keyFormat.format(date)
+                            labelFormat.format(date) to sp.getLong(dateKey, 0L)
+                        }
+                        ListeningStatsScreen(sp.getLong("total_ms", 0L), daily.last().second, sp.getInt("sessions", 0), daily, onBack = { page = "Главная" })
+                    }
                     "Избранное" -> FavoritesScreen(favorites, onBack = { page = "Главная" }, onRemove = { track ->
                         favorites.removeAll { it.title == track.title && it.artist == track.artist }
                         saveTracks("favorite_tracks_v1", favorites)
@@ -465,7 +475,7 @@ private fun NowPlayingScreen(title: String, artist: String, cover: String?, play
 }
 
 @Composable
-private fun ListeningStatsScreen(totalMillis: Long, todayMillis: Long, sessions: Int, onBack: () -> Unit) {
+private fun ListeningStatsScreen(totalMillis: Long, todayMillis: Long, sessions: Int, daily: List<Pair<String, Long>>, onBack: () -> Unit) {
     fun duration(value: Long): String {
         val mins = value.coerceAtLeast(0L) / 60000L
         val hours = mins / 60L
@@ -480,6 +490,19 @@ private fun ListeningStatsScreen(totalMillis: Long, todayMillis: Long, sessions:
                 Box(Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)).background(Color(0xFF193525)), contentAlignment = Alignment.Center) { Text(item.third, color = Neon, fontSize = 23.sp) }
                 Spacer(Modifier.width(14.dp))
                 Column { Text(item.first, color = Muted, fontSize = 10.sp, letterSpacing = 1.sp); Text(item.second, color = MainText, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 3.dp)) }
+            }
+        }
+        Text("ПО ДНЯМ", color = Neon, fontSize = 11.sp, letterSpacing = 1.3.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp, bottom = 10.dp))
+        val maxDay = (daily.maxOfOrNull { it.second } ?: 0L).coerceAtLeast(1L)
+        daily.forEach { day ->
+            Column(Modifier.fillMaxWidth().padding(bottom = 11.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(day.first, color = MainText, fontSize = 12.sp)
+                    Text(duration(day.second), color = Muted, fontSize = 11.sp)
+                }
+                Box(Modifier.fillMaxWidth().padding(top = 5.dp).height(7.dp).clip(RoundedCornerShape(8.dp)).background(Panel2)) {
+                    Box(Modifier.fillMaxWidth((day.second.toFloat() / maxDay).coerceIn(0f, 1f)).fillMaxHeight().clip(RoundedCornerShape(8.dp)).background(Neon))
+                }
             }
         }
         Text("Учитывается фактическое воспроизведение эфира, а не время, когда приложение просто открыто.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
