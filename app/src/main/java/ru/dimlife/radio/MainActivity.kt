@@ -247,7 +247,7 @@ private fun DimLifeApp(player: MediaController) {
                     Spacer(Modifier.height(24.dp))
                     Text("DimLife Радио", Modifier.padding(horizontal = 22.dp), color = MainText, fontSize = 23.sp, fontWeight = FontWeight.Black)
                     Text("Больше, чем просто музыка", Modifier.padding(start = 22.dp, top = 4.dp, bottom = 22.dp), color = Muted, fontSize = 12.sp)
-                    listOf("Главная" to "⌂", "Сейчас в эфире" to "♫", "Расписание" to "☷", "Избранное" to "♡", "История треков" to "◷", "Статистика" to "▥", "О радио" to "ⓘ", "Настройки" to "⚙").forEach { (label, icon) ->
+                    listOf("Главная" to "⌂", "Сейчас в эфире" to "♫", "Расписание" to "☷", "Избранное" to "♡", "История треков" to "◷", "О радио" to "ⓘ", "Настройки" to "⚙").forEach { (label, icon) ->
                         NavigationDrawerItem(
                             label = { Text(label, fontWeight = if (page == label) FontWeight.Bold else FontWeight.Normal) },
                             icon = { Text(icon, color = if (page == label) Neon else Muted, fontSize = 20.sp) },
@@ -299,17 +299,6 @@ private fun DimLifeApp(player: MediaController) {
                     )
                     "Сейчас в эфире" -> NowPlayingScreen(title, artist, cover, playing, status, onBack = { page = "Главная" }, onPlay = { if (player.isPlaying) player.pause() else startRadio() })
                     "История треков" -> TrackHistoryScreen(history, onBack = { page = "Главная" })
-                    "Статистика" -> {
-                        val sp = context.getSharedPreferences("dimlife_radio_stats", 0)
-                        val keyFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                        val labelFormat = java.text.SimpleDateFormat("EEE, d MMM", java.util.Locale.getDefault())
-                        val daily = (6 downTo 0).map { offset ->
-                            val date = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -offset) }.time
-                            val dateKey = "day_" + keyFormat.format(date)
-                            labelFormat.format(date) to sp.getLong(dateKey, 0L)
-                        }
-                        ListeningStatsScreen(sp.getLong("total_ms", 0L), daily.last().second, sp.getInt("sessions", 0), daily, onBack = { page = "Главная" })
-                    }
                     "Избранное" -> FavoritesScreen(favorites, onBack = { page = "Главная" }, onRemove = { track ->
                         favorites.removeAll { it.title == track.title && it.artist == track.artist }
                         saveTracks("favorite_tracks_v1", favorites)
@@ -471,41 +460,6 @@ private fun NowPlayingScreen(title: String, artist: String, cover: String?, play
         Button(onClick = onPlay, colors = ButtonDefaults.buttonColors(containerColor = Neon, contentColor = Bg)) { Text(if (playing) "Пауза" else "Слушать эфир") }
         Spacer(Modifier.height(18.dp))
         Text("DimLife Радио — твоя музыка, твоё настроение и твоя атмосфера.", color = Muted, textAlign = TextAlign.Center)
-    }
-}
-
-@Composable
-private fun ListeningStatsScreen(totalMillis: Long, todayMillis: Long, sessions: Int, daily: List<Pair<String, Long>>, onBack: () -> Unit) {
-    fun duration(value: Long): String {
-        val mins = value.coerceAtLeast(0L) / 60000L
-        val hours = mins / 60L
-        val rest = mins % 60L
-        return if (hours > 0) "$hours ч $rest мин" else "$rest мин"
-    }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp)) {
-        PageHeader("Статистика", onBack)
-        Text("Твоё время с DimLife Radio", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 5.dp, bottom = 18.dp))
-        listOf(Triple("ВСЕГО ПРОСЛУШАНО", duration(totalMillis), "◷"), Triple("СЕГОДНЯ", duration(todayMillis), "◉"), Triple("СЕССИЙ ПРОСЛУШИВАНИЯ", sessions.toString(), "♫")).forEach { item ->
-            Row(Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(17.dp)).background(Panel2).padding(17.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(46.dp).clip(RoundedCornerShape(13.dp)).background(Color(0xFF193525)), contentAlignment = Alignment.Center) { Text(item.third, color = Neon, fontSize = 23.sp) }
-                Spacer(Modifier.width(14.dp))
-                Column { Text(item.first, color = Muted, fontSize = 10.sp, letterSpacing = 1.sp); Text(item.second, color = MainText, fontSize = 22.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 3.dp)) }
-            }
-        }
-        Text("ПО ДНЯМ", color = Neon, fontSize = 11.sp, letterSpacing = 1.3.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp, bottom = 10.dp))
-        val maxDay = (daily.maxOfOrNull { it.second } ?: 0L).coerceAtLeast(1L)
-        daily.forEach { day ->
-            Column(Modifier.fillMaxWidth().padding(bottom = 11.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(day.first, color = MainText, fontSize = 12.sp)
-                    Text(duration(day.second), color = Muted, fontSize = 11.sp)
-                }
-                Box(Modifier.fillMaxWidth().padding(top = 5.dp).height(7.dp).clip(RoundedCornerShape(8.dp)).background(Panel2)) {
-                    Box(Modifier.fillMaxWidth((day.second.toFloat() / maxDay).coerceIn(0f, 1f)).fillMaxHeight().clip(RoundedCornerShape(8.dp)).background(Neon))
-                }
-            }
-        }
-        Text("Учитывается фактическое воспроизведение эфира, а не время, когда приложение просто открыто.", color = Muted, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
 
