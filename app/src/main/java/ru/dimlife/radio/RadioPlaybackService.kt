@@ -3,10 +3,6 @@ package ru.dimlife.radio
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
@@ -21,10 +17,6 @@ class RadioPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private val sleepHandler = Handler(Looper.getMainLooper())
     private var sleepStopTask: Runnable? = null
-    private val statsHandler = Handler(Looper.getMainLooper())
-    private var statsTick: Runnable? = null
-    private var lastStatsElapsed = 0L
-    private var statsWasPlaying = false
 
     companion object {
         const val ACTION_START_SLEEP_TIMER = "ru.dimlife.radio.action.START_SLEEP_TIMER"
@@ -68,7 +60,6 @@ class RadioPlaybackService : MediaSessionService() {
         )
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                updateListeningStats(isPlaying)
                 RadioWidgetUpdater.updateAll(this@RadioPlaybackService, player)
             }
 
@@ -96,55 +87,9 @@ class RadioPlaybackService : MediaSessionService() {
     }
 
 
-    private fun updateListeningStats(isPlaying: Boolean) {
-        val prefs = getSharedPreferences("dimlife_radio_stats", MODE_PRIVATE)
-        if (isPlaying && !statsWasPlaying) {
-            prefs.edit().putInt("sessions", prefs.getInt("sessions", 0) + 1).apply()
-            lastStatsElapsed = SystemClock.elapsedRealtime()
-            scheduleStatsTick()
-        } else if (!isPlaying && statsWasPlaying) {
-            flushListeningTime(prefs)
-            statsTick?.let(statsHandler::removeCallbacks)
-            statsTick = null
-        }
-        statsWasPlaying = isPlaying
-    }
-
-    private fun scheduleStatsTick() {
-        statsTick?.let(statsHandler::removeCallbacks)
-        val task = object : Runnable {
-            override fun run() {
-                if (!::player.isInitialized || !player.isPlaying) return
-                flushListeningTime(getSharedPreferences("dimlife_radio_stats", MODE_PRIVATE))
-                scheduleStatsTick()
-            }
-        }
-        statsTick = task
-        statsHandler.postDelayed(task, 15_000L)
-    }
-
-    private fun flushListeningTime(prefs: android.content.SharedPreferences) {
-        val now = SystemClock.elapsedRealtime()
-        if (lastStatsElapsed == 0L) {
-            lastStatsElapsed = now
-            return
-        }
-        val delta = (now - lastStatsElapsed).coerceAtLeast(0L)
-        lastStatsElapsed = now
-        if (delta == 0L) return
-        val day = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        prefs.edit()
-            .putLong("total_ms", prefs.getLong("total_ms", 0L) + delta)
-            .putLong("day_$day", prefs.getLong("day_$day", 0L) + delta)
-            .apply()
-    }
-
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onDestroy() {
-        if (statsWasPlaying) flushListeningTime(getSharedPreferences("dimlife_radio_stats", MODE_PRIVATE))
-        statsTick?.let(statsHandler::removeCallbacks)
-        statsTick = null
         sleepStopTask?.let(sleepHandler::removeCallbacks)
         sleepStopTask = null
         // Release the session before its player so no controller can address a released player.
